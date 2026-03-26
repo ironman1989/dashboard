@@ -56,6 +56,25 @@
     .toast { position: fixed; bottom: 24px; right: 24px; background: var(--green); color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; z-index: 300; display: none; animation: fadein .2s; }
     @keyframes fadein { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
 
+    /* LOGIN */
+    #login-page { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 999; align-items: center; justify-content: center; flex-direction: column; }
+    #login-page.active { display: flex; }
+    .login-box { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 40px; width: 100%; max-width: 400px; }
+    .login-logo { text-align: center; font-size: 28px; margin-bottom: 8px; }
+    .login-title { text-align: center; font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .login-sub { text-align: center; font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+    .login-group { margin-bottom: 16px; }
+    .login-group label { display: block; font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px; }
+    .login-group input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 7px; padding: 10px 14px; color: var(--text); font-size: 14px; outline: none; }
+    .login-group input:focus { border-color: var(--blue); }
+    .login-btn { width: 100%; background: var(--blue); color: #fff; border: none; padding: 11px; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+    .login-btn:hover { opacity: .85; }
+    .login-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .login-error { color: var(--red); font-size: 12px; margin-top: 10px; text-align: center; display: none; }
+    .login-user { display: flex; align-items: center; gap: 8px; margin-left: auto; font-size: 13px; color: var(--muted); }
+    .logout-btn { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 5px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+    .logout-btn:hover { border-color: var(--red); color: var(--red); }
+
     /* LAYOUT */
     .page { display: none; padding: 24px; max-width: 1400px; margin: 0 auto; }
     .page.active { display: block; }
@@ -153,6 +172,93 @@
 </head>
 <body>
 
+<!-- AUTH PAGE -->
+<div id="login-page" class="active">
+
+  <!-- SIGN IN -->
+  <div class="login-box" id="box-login">
+    <div class="login-logo">📊</div>
+    <div class="login-title">Financial Dashboard</div>
+    <div class="login-sub">Sign in to your account</div>
+    <div class="login-group">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')doLogin()" />
+    </div>
+    <div class="login-group">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
+    </div>
+    <div class="login-error" id="login-error"></div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">Sign In</button>
+    <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--muted)">
+      <span onclick="showBox('box-forgot')" style="cursor:pointer;color:var(--blue)">Forgot password?</span>
+      &nbsp;·&nbsp;
+      <span onclick="showBox('box-register')" style="cursor:pointer;color:var(--blue)">Create account</span>
+    </div>
+  </div>
+
+  <!-- REGISTER -->
+  <div class="login-box" id="box-register" style="display:none">
+    <div class="login-logo">📊</div>
+    <div class="login-title">Create Account</div>
+    <div class="login-sub">Sign up with your email</div>
+    <div class="login-group">
+      <label>Name</label>
+      <input type="text" id="reg-name" placeholder="Your name" />
+    </div>
+    <div class="login-group">
+      <label>Email</label>
+      <input type="email" id="reg-email" placeholder="you@example.com" />
+    </div>
+    <div class="login-group">
+      <label>Password</label>
+      <input type="password" id="reg-password" placeholder="Min 8 characters" />
+    </div>
+    <div class="login-error" id="reg-error"></div>
+    <div class="login-success" id="reg-success" style="color:var(--green);font-size:13px;margin-top:10px;text-align:center;display:none"></div>
+    <button class="login-btn" id="reg-btn" onclick="doRegister()">Create Account</button>
+    <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--muted)">
+      Already have an account? <span onclick="showBox('box-login')" style="cursor:pointer;color:var(--blue)">Sign in</span>
+    </div>
+  </div>
+
+  <!-- FORGOT PASSWORD -->
+  <div class="login-box" id="box-forgot" style="display:none">
+    <div class="login-logo">🔑</div>
+    <div class="login-title">Forgot Password</div>
+    <div class="login-sub">Enter your email to receive a reset link</div>
+    <div class="login-group">
+      <label>Email</label>
+      <input type="email" id="forgot-email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')doForgot()" />
+    </div>
+    <div class="login-error" id="forgot-error"></div>
+    <div class="login-success" id="forgot-success" style="color:var(--green);font-size:13px;margin-top:10px;text-align:center;display:none"></div>
+    <button class="login-btn" id="forgot-btn" onclick="doForgot()">Send Reset Link</button>
+    <div style="text-align:center;margin-top:16px;font-size:13px;color:var(--muted)">
+      <span onclick="showBox('box-login')" style="cursor:pointer;color:var(--blue)">← Back to Sign In</span>
+    </div>
+  </div>
+
+  <!-- RESET PASSWORD -->
+  <div class="login-box" id="box-reset" style="display:none">
+    <div class="login-logo">🔐</div>
+    <div class="login-title">Reset Password</div>
+    <div class="login-sub">Enter your new password</div>
+    <div class="login-group">
+      <label>New Password</label>
+      <input type="password" id="reset-password" placeholder="Min 8 characters" />
+    </div>
+    <div class="login-group">
+      <label>Confirm Password</label>
+      <input type="password" id="reset-confirm" placeholder="Repeat password" />
+    </div>
+    <div class="login-error" id="reset-error"></div>
+    <div class="login-success" id="reset-success" style="color:var(--green);font-size:13px;margin-top:10px;text-align:center;display:none"></div>
+    <button class="login-btn" id="reset-btn" onclick="doReset()">Reset Password</button>
+  </div>
+
+</div>
+
 <nav>
   <div class="brand">📊 Financial Dashboard</div>
   <div class="nav-links">
@@ -162,6 +268,7 @@
   <select id="period-select" onchange="changePeriod(this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:7px;font-size:13px;cursor:pointer;outline:none;"></select>
   <button onclick="openNewMonthModal()" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:7px;font-size:13px;cursor:pointer;">＋ New Month</button>
   <button class="btn-add" onclick="openModal()">＋ Add Transaction</button>
+  <div class="login-user"><span id="nav-username"></span><button class="logout-btn" onclick="doLogout()">Logout</button></div>
 </nav>
 
 <!-- ADD TRANSACTION MODAL -->
@@ -316,6 +423,147 @@ let allTransactions = [], allMembers = [], summary = {};
 let currentPeriod = 'Mar 2026';
 let allPeriods = [];
 let chartInstances = {};
+let authToken = localStorage.getItem('fd_token') || '';
+
+function authHeaders() {
+  return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken };
+}
+
+function apiFetch(url, opts = {}) {
+  opts.headers = { ...authHeaders(), ...(opts.headers || {}) };
+  return fetch(url, opts).then(async r => {
+    if (r.status === 401) { doLogout(); throw new Error('Session expired'); }
+    return r;
+  });
+}
+
+// --- AUTH ---
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+  if (!email || !password) { errEl.textContent = 'Email and password required.'; errEl.style.display = 'block'; return; }
+  btn.disabled = true; btn.textContent = 'Signing in…'; errEl.style.display = 'none';
+  try {
+    const res = await fetch(API + '/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    authToken = data.token;
+    localStorage.setItem('fd_token', authToken);
+    document.getElementById('login-page').classList.remove('active');
+    document.getElementById('nav-username').textContent = data.name || data.email;
+    loadAll();
+  } catch(e) {
+    errEl.textContent = e.message; errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
+}
+
+function doLogout() {
+  authToken = '';
+  localStorage.removeItem('fd_token');
+  document.getElementById('login-page').classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('loading').style.display = 'none';
+  showBox('box-login');
+}
+
+function showBox(id) {
+  ['box-login','box-register','box-forgot','box-reset'].forEach(b => {
+    document.getElementById(b).style.display = b === id ? 'block' : 'none';
+  });
+  // Clear errors
+  ['login-error','reg-error','forgot-error','reset-error'].forEach(e => {
+    const el = document.getElementById(e);
+    if (el) el.style.display = 'none';
+  });
+}
+
+async function doRegister() {
+  const name     = document.getElementById('reg-name').value.trim();
+  const email    = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const errEl    = document.getElementById('reg-error');
+  const sucEl    = document.getElementById('reg-success');
+  const btn      = document.getElementById('reg-btn');
+
+  errEl.style.display = 'none'; sucEl.style.display = 'none';
+  if (!email || !password) { errEl.textContent = 'Email and password required.'; errEl.style.display = 'block'; return; }
+  if (password.length < 8) { errEl.textContent = 'Password must be at least 8 characters.'; errEl.style.display = 'block'; return; }
+
+  btn.disabled = true; btn.textContent = 'Creating…';
+  try {
+    const res = await fetch(API + '/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, name }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    sucEl.textContent = '✓ ' + data.message;
+    sucEl.style.display = 'block';
+    btn.style.display = 'none';
+  } catch(e) {
+    errEl.textContent = e.message; errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create Account';
+  }
+}
+
+async function doForgot() {
+  const email = document.getElementById('forgot-email').value.trim();
+  const errEl = document.getElementById('forgot-error');
+  const sucEl = document.getElementById('forgot-success');
+  const btn   = document.getElementById('forgot-btn');
+
+  errEl.style.display = 'none'; sucEl.style.display = 'none';
+  if (!email) { errEl.textContent = 'Please enter your email.'; errEl.style.display = 'block'; return; }
+
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    const res = await fetch(API + '/auth/forgot-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+    const data = await res.json();
+    sucEl.textContent = '✓ ' + data.message;
+    sucEl.style.display = 'block';
+  } catch(e) {
+    errEl.textContent = 'Something went wrong. Try again.'; errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Send Reset Link';
+  }
+}
+
+async function doReset() {
+  const password = document.getElementById('reset-password').value;
+  const confirm  = document.getElementById('reset-confirm').value;
+  const errEl    = document.getElementById('reset-error');
+  const sucEl    = document.getElementById('reset-success');
+  const btn      = document.getElementById('reset-btn');
+  const token    = new URLSearchParams(window.location.hash.slice(1)).get('reset');
+
+  errEl.style.display = 'none'; sucEl.style.display = 'none';
+  if (!password || password.length < 8) { errEl.textContent = 'Password must be at least 8 characters.'; errEl.style.display = 'block'; return; }
+  if (password !== confirm) { errEl.textContent = 'Passwords do not match.'; errEl.style.display = 'block'; return; }
+
+  btn.disabled = true; btn.textContent = 'Resetting…';
+  try {
+    const res = await fetch(API + '/auth/reset-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, password }) });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    sucEl.textContent = '✓ ' + data.message;
+    sucEl.style.display = 'block';
+    btn.style.display = 'none';
+    setTimeout(() => { window.location.hash = ''; showBox('box-login'); }, 2500);
+  } catch(e) {
+    errEl.textContent = e.message; errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Reset Password';
+  }
+}
+
+// Check for password reset token in URL hash on load
+const hashParams = new URLSearchParams(window.location.hash.slice(1));
+if (hashParams.get('reset')) {
+  document.getElementById('login-page').classList.add('active');
+  showBox('box-reset');
+}
 
 const fmt = n => (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const colorVal = n => n > 0 ? 'green' : n < 0 ? 'red' : 'muted';
@@ -330,7 +578,7 @@ function showPage(name) {
 async function loadAll() {
   try {
     // Load periods first
-    const periods = await fetch(API + '/members/periods/list').then(r => r.json());
+    const periods = await apiFetch(API + '/members/periods/list').then(r => r.json());
     const monthOrder = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const parsePeriod = p => { const [m, y] = p.split(' '); return parseInt(y) * 12 + monthOrder.indexOf(m); };
     allPeriods = periods.length ? periods.sort((a,b) => parsePeriod(a) - parsePeriod(b)) : ['Mar 2026'];
@@ -355,9 +603,9 @@ function renderPeriodSelect() {
 async function loadPeriod(period) {
   currentPeriod = period;
   const [s, m, t] = await Promise.all([
-    fetch(`${API}/summary?period=${encodeURIComponent(period)}`).then(r => r.json()),
-    fetch(`${API}/members?period=${encodeURIComponent(period)}`).then(r => r.json()),
-    fetch(`${API}/transactions?period=${encodeURIComponent(period)}`).then(r => r.json())
+    apiFetch(`${API}/summary?period=${encodeURIComponent(period)}`).then(r => r.json()),
+    apiFetch(`${API}/members?period=${encodeURIComponent(period)}`).then(r => r.json()),
+    apiFetch(`${API}/transactions?period=${encodeURIComponent(period)}`).then(r => r.json())
   ]);
   summary = s; allMembers = m; allTransactions = t;
   renderSummaryCards();
@@ -546,7 +794,7 @@ async function createNewMonth() {
   const btn = document.getElementById('nm-save');
   btn.disabled = true;
   // Create a placeholder member entry so the period appears in the list
-  await fetch(API + '/members', {
+  await apiFetch(API + '/members', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ member: '_init', period, pending: 0, income: 0, etc: 0, from3Team: 0, result: 0 })
@@ -578,7 +826,7 @@ function onHashInput() {
 
   hashTimer = setTimeout(async () => {
     try {
-      const res = await fetch(`${API}/tx-lookup?hash=${encodeURIComponent(hash)}`);
+      const res = await apiFetch(`${API}/tx-lookup?hash=${encodeURIComponent(hash)}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       document.getElementById('f-amount').value = -Math.abs(data.amount);
@@ -638,7 +886,7 @@ async function submitTransaction() {
   errEl.style.display = 'none';
 
   try {
-    const res = await fetch(API + '/transactions', {
+    const res = await apiFetch(API + '/transactions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ date, name, amount: parseFloat(amount), transactionHash: hash || null, period: currentPeriod })
@@ -655,7 +903,7 @@ async function submitTransaction() {
     renderCharts();
     renderTimeline();
     renderTopMembers();
-    const s = await fetch(`${API}/summary?period=${encodeURIComponent(currentPeriod)}`).then(r => r.json());
+    const s = await apiFetch(`${API}/summary?period=${encodeURIComponent(currentPeriod)}`).then(r => r.json());
     summary = s;
     renderSummaryCards();
   } catch(e) {
@@ -674,7 +922,11 @@ function showToast(msg = '✓ Transaction added!') {
   setTimeout(() => { t.style.display = 'none'; }, 2500);
 }
 
-loadAll();
+// Auto-login if token exists, otherwise show login page
+if (authToken) {
+  document.getElementById('login-page').classList.remove('active');
+  loadAll();
+}
 </script>
 </body>
 </html>

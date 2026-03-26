@@ -5,6 +5,8 @@ const cors = require('cors');
 
 const transactionsRouter = require('./routes/transactions');
 const membersRouter = require('./routes/members');
+const authRouter = require('./routes/auth');
+const authMiddleware = require('./middleware/auth');
 const Transaction = require('./models/Transaction');
 const Member = require('./models/Member');
 
@@ -27,12 +29,15 @@ mongoose.connect(MONGO_URI)
     process.exit(1);
   });
 
-// Routes
-app.use('/api/transactions', transactionsRouter);
-app.use('/api/members', membersRouter);
+// Public routes
+app.use('/api/auth', authRouter);
 
-// Summary endpoint
-app.get('/api/summary', async (req, res) => {
+// Protected routes
+app.use('/api/transactions', authMiddleware, transactionsRouter);
+app.use('/api/members', authMiddleware, membersRouter);
+
+// Summary endpoint (protected)
+app.get('/api/summary', authMiddleware, async (req, res) => {
   try {
     const { period } = req.query;
     const txFilter = period ? { period } : {};
@@ -62,8 +67,8 @@ app.get('/api/summary', async (req, res) => {
 
 const DEBANK_API_KEY = process.env.DEBANK_API_KEY || '';
 
-// TX Lookup — fetch USDT amount via DeBank API
-app.get('/api/tx-lookup', async (req, res) => {
+// TX Lookup (protected)
+app.get('/api/tx-lookup', authMiddleware, async (req, res) => {
   try {
     let { hash } = req.query;
     if (!hash) return res.status(400).json({ error: 'hash is required' });
