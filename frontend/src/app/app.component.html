@@ -1,0 +1,49 @@
+<div class="app-shell">
+  <!-- Top Navigation Bar -->
+  <nav class="navbar">
+    <div class="nav-inner">
+      <div class="nav-brand">
+        <div class="brand-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 10l3-3 2 2 3-4 2 2V15H7z" fill="#388bfd"/>
+          </svg>
+        </div>
+        <span class="brand-title">Mar 2025</span>
+        <span class="brand-sub">Financial Dashboard</span>
+      </div>
+
+      <div class="nav-links" [class.open]="menuOpen">
+        <a routerLink="/dashboard" routerLinkActive="active" (click)="closeMenu()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+          </svg>
+          Dashboard
+        </a>
+        <a routerLink="/transactions" routerLinkActive="active" (click)="closeMenu()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
+          </svg>
+          Transactions
+        </a>
+      </div>
+
+      <div class="nav-period">
+        <span class="period-badge">March 2025</span>
+      </div>
+
+      <button class="hamburger" (click)="toggleMenu()" [class.open]="menuOpen">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <router-outlet></router-outlet>
+  </main>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <span>Mar 2025 Crypto Payment Tracker &bull; Data as of March 25, 2025</span>
+  </footer>
+</div>

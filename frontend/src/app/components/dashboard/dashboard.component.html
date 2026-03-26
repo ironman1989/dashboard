@@ -1,0 +1,223 @@
+<!-- Loading State -->
+<div class="loading-state" *ngIf="loading">
+  <div class="spinner"></div>
+  <p>Loading dashboard data...</p>
+</div>
+
+<!-- Error State -->
+<div class="error-state" *ngIf="error && !loading">
+  <div class="error-icon">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="#f85149">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+    </svg>
+  </div>
+  <h3>Connection Error</h3>
+  <p>{{ error }}</p>
+  <button class="retry-btn" (click)="loadData()">Retry</button>
+</div>
+
+<!-- Dashboard Content -->
+<div class="dashboard" *ngIf="!loading && !error">
+
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Financial Overview</h1>
+      <p class="page-subtitle">Mar 2025 crypto payment tracker — {{ transactions.length }} transactions across {{ members.length }} members</p>
+    </div>
+  </div>
+
+  <!-- Summary Cards -->
+  <div class="summary-grid" *ngIf="summary">
+    <div class="summary-card">
+      <div class="card-icon blue">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z"/>
+        </svg>
+      </div>
+      <div class="card-content">
+        <span class="card-label">Total Members</span>
+        <span class="card-value">{{ summary.totalMembers }}</span>
+        <span class="card-sub">
+          <span class="text-green">{{ summary.positiveMembers }} positive</span>
+          &nbsp;&bull;&nbsp;
+          <span class="text-red">{{ summary.negativeMembers }} negative</span>
+        </span>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="card-icon purple">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+        </svg>
+      </div>
+      <div class="card-content">
+        <span class="card-label">Total Transactions</span>
+        <span class="card-value">{{ summary.totalTransactions }}</span>
+        <span class="card-sub text-secondary">Across 7 dates</span>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="card-icon red">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/>
+        </svg>
+      </div>
+      <div class="card-content">
+        <span class="card-label">Total Amount Out</span>
+        <span class="card-value text-red">{{ formatAmount(summary.totalAmount) }}</span>
+        <span class="card-sub text-secondary">Sum of all payments</span>
+      </div>
+    </div>
+
+    <div class="summary-card">
+      <div class="card-icon" [class.green]="summary.totalResult >= 0" [class.red]="summary.totalResult < 0">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
+        </svg>
+      </div>
+      <div class="card-content">
+        <span class="card-label">Net Result</span>
+        <span class="card-value" [class.text-green]="summary.totalResult >= 0" [class.text-red]="summary.totalResult < 0">
+          {{ formatAmount(summary.totalResult) }}
+        </span>
+        <span class="card-sub text-secondary">Combined member balance</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 1 -->
+  <div class="charts-row">
+    <div class="chart-card wide">
+      <div class="chart-header">
+        <h2 class="chart-title">Result by Member</h2>
+        <span class="chart-subtitle">Net balance per member (sorted by value)</span>
+      </div>
+      <div class="chart-body">
+        <canvas #resultChart></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Row 2 -->
+  <div class="charts-row two-col">
+    <div class="chart-card">
+      <div class="chart-header">
+        <h2 class="chart-title">Amount by Date</h2>
+        <span class="chart-subtitle">Daily payment totals</span>
+      </div>
+      <div class="chart-body medium">
+        <canvas #dateChart></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <h2 class="chart-title">Transaction Share by Member</h2>
+        <span class="chart-subtitle">By total amount paid</span>
+      </div>
+      <div class="chart-body medium">
+        <canvas #pieChart></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Row: Member Table + Activity Timeline -->
+  <div class="bottom-row">
+
+    <!-- Top 5 Members -->
+    <div class="data-card">
+      <div class="data-card-header">
+        <h2 class="chart-title">Top Members by Impact</h2>
+        <a routerLink="/transactions" class="view-all">View all &rarr;</a>
+      </div>
+      <div class="member-list">
+        <div class="member-row" *ngFor="let m of getTopMembers(); let i = index">
+          <div class="member-rank">{{ i + 1 }}</div>
+          <div class="member-avatar" [style.background]="i % 2 === 0 ? 'rgba(31,111,235,0.2)' : 'rgba(248,81,73,0.2)'">
+            {{ getMemberInitials(m.member) }}
+          </div>
+          <div class="member-info">
+            <span class="member-name">{{ m.member }}</span>
+            <span class="member-detail text-muted">
+              Pending: {{ formatAmount(m.pending) }} &bull; Income: {{ formatAmount(m.income) }}
+            </span>
+          </div>
+          <div class="member-result" [class.text-green]="m.result >= 0" [class.text-red]="m.result < 0">
+            {{ formatAmount(m.result) }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity by Date -->
+    <div class="data-card">
+      <div class="data-card-header">
+        <h2 class="chart-title">Activity by Date</h2>
+      </div>
+      <div class="timeline">
+        <div class="timeline-item" *ngFor="let d of getTransactionsByDate()">
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <div class="timeline-date">{{ d.date }}</div>
+            <div class="timeline-stats">
+              <span class="tl-count">{{ d.count }} tx</span>
+              <span class="tl-amount text-red">{{ formatAmount(d.total) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Full Member Summary Table -->
+  <div class="chart-card mt-24">
+    <div class="chart-header">
+      <h2 class="chart-title">Member Pending Summary</h2>
+      <span class="chart-subtitle">All columns: Pending, Income, Etc, From3Team, Result</span>
+    </div>
+    <div class="table-wrapper">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Member</th>
+            <th class="num">Pending</th>
+            <th class="num">Income</th>
+            <th class="num">Etc</th>
+            <th class="num">From 3 Team</th>
+            <th class="num">Result</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let m of members">
+            <td>
+              <div class="member-cell">
+                <div class="mini-avatar">{{ getMemberInitials(m.member) }}</div>
+                {{ m.member }}
+              </div>
+            </td>
+            <td class="num" [class.text-red]="m.pending < 0" [class.text-muted]="m.pending === 0">
+              {{ m.pending !== 0 ? formatAmount(m.pending) : '—' }}
+            </td>
+            <td class="num" [class.text-red]="m.income < 0" [class.text-muted]="m.income === 0">
+              {{ m.income !== 0 ? formatAmount(m.income) : '—' }}
+            </td>
+            <td class="num" [class.text-green]="m.etc > 0" [class.text-red]="m.etc < 0" [class.text-muted]="m.etc === 0">
+              {{ m.etc !== 0 ? formatAmount(m.etc) : '—' }}
+            </td>
+            <td class="num" [class.text-red]="m.from3Team < 0" [class.text-muted]="m.from3Team === 0">
+              {{ m.from3Team !== 0 ? formatAmount(m.from3Team) : '—' }}
+            </td>
+            <td class="num result-cell" [class.text-green]="m.result >= 0" [class.text-red]="m.result < 0">
+              <strong>{{ formatAmount(m.result) }}</strong>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>

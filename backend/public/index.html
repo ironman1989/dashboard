@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Financial Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --blue: #388bfd;
+      --green: #3fb950;
+      --red: #f85149;
+      --yellow: #d29922;
+      --purple: #bc8cff;
+    }
+
+    body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+
+    /* NAV */
+    nav { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; align-items: center; height: 56px; gap: 32px; position: sticky; top: 0; z-index: 100; }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; color: var(--text); }
+    .brand span { color: var(--muted); font-weight: 400; font-size: 13px; }
+    .nav-links { display: flex; gap: 4px; }
+    .nav-links a { padding: 6px 14px; border-radius: 6px; color: var(--muted); text-decoration: none; font-size: 14px; transition: all .15s; cursor: pointer; }
+    .nav-links a:hover { color: var(--text); background: rgba(255,255,255,.06); }
+    .nav-links a.active { color: var(--text); background: rgba(56,139,253,.15); }
+    .nav-badge { margin-left: auto; background: rgba(56,139,253,.15); color: var(--blue); padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .btn-add { background: var(--blue); color: #fff; border: none; padding: 7px 16px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: opacity .15s; }
+    .btn-add:hover { opacity: .85; }
+
+    /* MODAL */
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 200; align-items: center; justify-content: center; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; width: 100%; max-width: 460px; }
+    .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 20px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+    .form-group input, .form-group select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 7px; padding: 9px 12px; color: var(--text); font-size: 14px; outline: none; }
+    .form-group input:focus, .form-group select:focus { border-color: var(--blue); }
+    .form-group input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+    .btn-cancel { background: transparent; border: 1px solid var(--border); color: var(--muted); padding: 8px 18px; border-radius: 7px; font-size: 13px; cursor: pointer; }
+    .btn-cancel:hover { border-color: var(--text); color: var(--text); }
+    .btn-save { background: var(--blue); color: #fff; border: none; padding: 8px 18px; border-radius: 7px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .btn-save:hover { opacity: .85; }
+    .btn-save:disabled { opacity: .5; cursor: not-allowed; }
+    .form-error { color: var(--red); font-size: 12px; margin-top: 12px; display: none; }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--green); color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; z-index: 300; display: none; animation: fadein .2s; }
+    @keyframes fadein { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+
+    /* LAYOUT */
+    .page { display: none; padding: 24px; max-width: 1400px; margin: 0 auto; }
+    .page.active { display: block; }
+
+    /* CARDS */
+    .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; display: flex; gap: 16px; align-items: flex-start; }
+    .card-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px; }
+    .card-icon.blue { background: rgba(56,139,253,.15); }
+    .card-icon.red { background: rgba(248,81,73,.15); }
+    .card-icon.green { background: rgba(63,185,80,.15); }
+    .card-icon.purple { background: rgba(188,140,255,.15); }
+    .card-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; display: block; margin-bottom: 4px; }
+    .card-value { font-size: 24px; font-weight: 700; display: block; margin-bottom: 4px; }
+    .card-sub { font-size: 12px; color: var(--muted); }
+    .card-link { cursor: pointer; transition: border-color .15s, transform .15s; }
+    .card-link:hover { border-color: var(--blue); transform: translateY(-2px); }
+
+    /* CHARTS */
+    .charts-row { display: grid; gap: 16px; margin-bottom: 24px; }
+    .charts-row.two-col { grid-template-columns: 1fr 1fr; }
+    .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+    .chart-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .chart-sub { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+    .chart-body { position: relative; height: 280px; }
+    .chart-body.sm { height: 220px; }
+
+    /* TABLE */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead th { background: rgba(255,255,255,.04); padding: 10px 14px; text-align: left; color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); }
+    thead th.num { text-align: right; }
+    tbody td { padding: 10px 14px; border-bottom: 1px solid rgba(48,54,61,.5); }
+    tbody td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tbody tr:hover { background: rgba(255,255,255,.03); }
+    tbody tr:last-child td { border-bottom: none; }
+    .total-row td { background: rgba(56,139,253,.08); font-weight: 700; border-top: 1px solid var(--border); }
+
+    /* COLORS */
+    .green { color: var(--green); }
+    .red { color: var(--red); }
+    .muted { color: var(--muted); }
+    .blue { color: var(--blue); }
+
+    /* AVATAR */
+    .avatar { width: 28px; height: 28px; border-radius: 6px; background: rgba(56,139,253,.2); display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--blue); margin-right: 8px; vertical-align: middle; }
+
+    /* BADGE */
+    .badge { padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge.eth { background: rgba(188,140,255,.15); color: var(--purple); }
+    .badge.bsc { background: rgba(210,153,34,.15); color: var(--yellow); }
+
+    /* SEARCH */
+    .search-bar { display: flex; gap: 12px; margin-bottom: 20px; }
+    .search-bar input { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; color: var(--text); font-size: 14px; outline: none; }
+    .search-bar input:focus { border-color: var(--blue); }
+
+    /* BOTTOM GRID */
+    .bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+    .mini-list { display: flex; flex-direction: column; gap: 8px; }
+    .mini-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(48,54,61,.5); }
+    .mini-row:last-child { border-bottom: none; }
+    .mini-rank { width: 20px; color: var(--muted); font-size: 12px; font-weight: 700; }
+    .mini-info { flex: 1; }
+    .mini-name { font-size: 13px; font-weight: 600; }
+    .mini-detail { font-size: 11px; color: var(--muted); }
+    .mini-result { font-size: 13px; font-weight: 700; }
+
+    .timeline { display: flex; flex-direction: column; gap: 0; }
+    .tl-item { display: flex; gap: 14px; padding: 10px 0; border-bottom: 1px solid rgba(48,54,61,.5); align-items: center; }
+    .tl-item:last-child { border-bottom: none; }
+    .tl-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); flex-shrink: 0; }
+    .tl-date { font-size: 13px; font-weight: 600; width: 70px; }
+    .tl-stats { display: flex; gap: 12px; font-size: 12px; }
+    .tl-count { color: var(--muted); }
+
+    /* TX LINK */
+    .tx-link { color: var(--blue); text-decoration: none; font-size: 11px; }
+    .tx-link:hover { text-decoration: underline; }
+
+    /* LOADING */
+    #loading { display: flex; align-items: center; justify-content: center; height: 200px; color: var(--muted); font-size: 15px; gap: 12px; }
+    .spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 900px) {
+      .cards { grid-template-columns: 1fr 1fr; }
+      .charts-row.two-col { grid-template-columns: 1fr; }
+      .bottom-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 500px) {
+      .cards { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">📊 Financial Dashboard</div>
+  <div class="nav-links">
+    <a onclick="showPage('dashboard')" id="nav-dashboard" class="active">🏠 Dashboard</a>
+    <a onclick="showPage('transactions')" id="nav-transactions">📋 Transactions</a>
+  </div>
+  <select id="period-select" onchange="changePeriod(this.value)" style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:7px;font-size:13px;cursor:pointer;outline:none;"></select>
+  <button onclick="openNewMonthModal()" style="background:transparent;border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:7px;font-size:13px;cursor:pointer;">＋ New Month</button>
+  <button class="btn-add" onclick="openModal()">＋ Add Transaction</button>
+</nav>
+
+<!-- ADD TRANSACTION MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-title">➕ Add New Transaction</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="f-date" />
+      </div>
+      <div class="form-group">
+        <label>Name</label>
+        <select id="f-name">
+          <option value="">-- Select Member --</option>
+          <option>HHI</option>
+          <option>JGC</option>
+          <option>JHH</option>
+          <option>KDD</option>
+          <option>KHG</option>
+          <option>KIS</option>
+          <option>KJY</option>
+          <option>KMG</option>
+          <option>RHC</option>
+          <option>RMS</option>
+          <option>RUH</option>
+          <option>RUS</option>
+          <option>SCU</option>
+          <option>SMH</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Amount</label>
+      <input type="number" id="f-amount" placeholder="e.g. -50" step="0.01" />
+    </div>
+    <div class="form-group">
+      <label>Transaction Hash <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+      <input type="text" id="f-hash" placeholder="https://etherscan.io/tx/0x..." oninput="onHashInput()" />
+      <div id="hash-status" style="font-size:12px;margin-top:6px;display:none;"></div>
+    </div>
+    <div class="form-error" id="form-error"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" id="btn-save" onclick="submitTransaction()">Save Transaction</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast">✓ Transaction added!</div>
+
+<!-- NEW MONTH MODAL -->
+<div class="modal-overlay" id="new-month-overlay" onclick="if(event.target===this)closeNewMonthModal()">
+  <div class="modal">
+    <div class="modal-title">📅 Start New Month Report</div>
+    <div class="form-group">
+      <label>Month &amp; Year</label>
+      <input type="text" id="nm-period" placeholder="e.g. Apr 2026" />
+    </div>
+    <div class="form-error" id="nm-error"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeNewMonthModal()">Cancel</button>
+      <button class="btn-save" id="nm-save" onclick="createNewMonth()">Create Report</button>
+    </div>
+  </div>
+</div>
+
+<div id="loading"><div class="spinner"></div> Loading data...</div>
+
+<!-- DASHBOARD PAGE -->
+<div class="page" id="page-dashboard">
+
+  <div class="cards" id="summary-cards"></div>
+
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">Result by Member</div>
+      <div class="chart-sub">Net balance per member (sorted by value)</div>
+      <div class="chart-body"><canvas id="resultChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="charts-row two-col">
+    <div class="chart-card">
+      <div class="chart-title">Amount by Date</div>
+      <div class="chart-sub">Daily payment totals</div>
+      <div class="chart-body sm"><canvas id="dateChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Transaction Share by Member</div>
+      <div class="chart-sub">By total amount paid</div>
+      <div class="chart-body sm"><canvas id="pieChart"></canvas></div>
+    </div>
+  </div>
+
+  <div class="bottom-grid">
+    <div class="chart-card">
+      <div class="chart-title" style="margin-bottom:16px">Top Members by Impact</div>
+      <div class="mini-list" id="top-members"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title" style="margin-bottom:16px">Activity by Date</div>
+      <div class="timeline" id="timeline"></div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-title" style="margin-bottom:4px">Member Pending Summary</div>
+    <div class="chart-sub">All columns: Pending, Income, Etc, From 3Team, Result</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Member</th>
+            <th class="num">Pending</th>
+            <th class="num">Income</th>
+            <th class="num">Etc</th>
+            <th class="num">From 3Team</th>
+            <th class="num">Result</th>
+          </tr>
+        </thead>
+        <tbody id="members-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TRANSACTIONS PAGE -->
+<div class="page" id="page-transactions">
+  <div class="search-bar">
+    <input type="text" id="tx-search" placeholder="Search by name, date, amount..." oninput="filterTransactions()" />
+  </div>
+  <div class="chart-card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Name</th>
+            <th class="num">Amount</th>
+            <th>Transaction Hash</th>
+          </tr>
+        </thead>
+        <tbody id="tx-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:3000/api';
+let allTransactions = [], allMembers = [], summary = {};
+let currentPeriod = 'Mar 2026';
+let allPeriods = [];
+let chartInstances = {};
+
+const fmt = n => (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const colorVal = n => n > 0 ? 'green' : n < 0 ? 'red' : 'muted';
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+}
+
+async function loadAll() {
+  try {
+    // Load periods first
+    const periods = await fetch(API + '/members/periods/list').then(r => r.json());
+    const monthOrder = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const parsePeriod = p => { const [m, y] = p.split(' '); return parseInt(y) * 12 + monthOrder.indexOf(m); };
+    allPeriods = periods.length ? periods.sort((a,b) => parsePeriod(a) - parsePeriod(b)) : ['Mar 2026'];
+    // Default to most recent period
+    currentPeriod = allPeriods[allPeriods.length - 1];
+    renderPeriodSelect();
+    await loadPeriod(currentPeriod);
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('page-dashboard').classList.add('active');
+  } catch(e) {
+    document.getElementById('loading').innerHTML = '⚠️ Failed to connect to backend at port 3000. Make sure it is running.';
+  }
+}
+
+function renderPeriodSelect() {
+  const sel = document.getElementById('period-select');
+  sel.innerHTML = allPeriods.map(p =>
+    `<option value="${p}" ${p === currentPeriod ? 'selected' : ''}>${p}</option>`
+  ).join('');
+}
+
+async function loadPeriod(period) {
+  currentPeriod = period;
+  const [s, m, t] = await Promise.all([
+    fetch(`${API}/summary?period=${encodeURIComponent(period)}`).then(r => r.json()),
+    fetch(`${API}/members?period=${encodeURIComponent(period)}`).then(r => r.json()),
+    fetch(`${API}/transactions?period=${encodeURIComponent(period)}`).then(r => r.json())
+  ]);
+  summary = s; allMembers = m; allTransactions = t;
+  renderSummaryCards();
+  renderCharts();
+  renderMembersTable();
+  renderTopMembers();
+  renderTimeline();
+  renderTransactions();
+}
+
+async function changePeriod(period) {
+  const currentPage = document.querySelector('.page.active')?.id || 'page-dashboard';
+  document.getElementById('loading').style.display = 'flex';
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  await loadPeriod(period);
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById(currentPage).classList.add('active');
+  document.getElementById('nav-dashboard').classList.toggle('active', currentPage === 'page-dashboard');
+  document.getElementById('nav-transactions').classList.toggle('active', currentPage === 'page-transactions');
+}
+
+function renderSummaryCards() {
+  const cards = [
+    { icon: '👥', cls: 'blue', label: 'Total Members', value: summary.totalMembers, sub: `<span class="green">${summary.positiveMembers} positive</span> · <span class="red">${summary.negativeMembers} negative</span>` },
+    { icon: '📋', cls: 'purple', label: 'Total Transactions', value: summary.totalTransactions, sub: 'Across 7 dates', link: true },
+    { icon: '💸', cls: 'red', label: 'Total Amount Out', value: fmt(summary.totalAmount), sub: 'Sum of all payments', valClass: 'red' },
+    { icon: '📈', cls: summary.totalResult >= 0 ? 'green' : 'red', label: 'Net Result', value: fmt(summary.totalResult), sub: 'Combined member balance', valClass: colorVal(summary.totalResult) }
+  ];
+  document.getElementById('summary-cards').innerHTML = cards.map(c => `
+    <div class="card ${c.link ? 'card-link' : ''}" ${c.link ? 'onclick="showPage(\'transactions\')"' : ''}>
+      <div class="card-icon ${c.cls}">${c.icon}</div>
+      <div>
+        <span class="card-label">${c.label}</span>
+        <span class="card-value ${c.valClass || ''}">${c.value}</span>
+        <span class="card-sub">${c.sub}</span>
+      </div>
+    </div>`).join('');
+}
+
+function destroyCharts() {
+  ['resultChart','dateChart','pieChart'].forEach(id => {
+    if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
+  });
+}
+
+function renderCharts() {
+  destroyCharts();
+  const members = allMembers.filter(m => m.member !== '_init');
+  if (!members.length && !allTransactions.length) {
+    ['resultChart','dateChart','pieChart'].forEach(id => {
+      const ctx = document.getElementById(id).getContext('2d');
+      ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      ctx.fillStyle = '#8b949e';
+      ctx.font = '14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('No data yet for this period', ctx.canvas.width/2, ctx.canvas.height/2);
+    });
+    return;
+  }
+  const chartOpts = (yFmt) => ({
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1c2128', borderColor: '#30363d', borderWidth: 1, titleColor: '#e6edf3', bodyColor: '#8b949e', callbacks: { label: ctx => ' ' + fmt(ctx.parsed.y) } } },
+    scales: {
+      x: { ticks: { color: '#8b949e', font: { size: 11 } }, grid: { color: 'rgba(48,54,61,.5)' } },
+      y: { ticks: { color: '#8b949e', font: { size: 11 }, callback: v => '$' + v.toLocaleString() }, grid: { color: 'rgba(48,54,61,.5)' } }
+    }
+  });
+
+  // Result chart
+  const sorted = [...members].sort((a,b) => a.result - b.result);
+  chartInstances['resultChart'] = new Chart(document.getElementById('resultChart'), {
+    type: 'bar',
+    data: {
+      labels: sorted.map(m => m.member),
+      datasets: [{ label: 'Result', data: sorted.map(m => m.result), backgroundColor: sorted.map(m => m.result >= 0 ? 'rgba(63,185,80,.8)' : 'rgba(248,81,73,.8)'), borderColor: sorted.map(m => m.result >= 0 ? '#3fb950' : '#f85149'), borderWidth: 1, borderRadius: 4 }]
+    },
+    options: chartOpts()
+  });
+
+  // Date chart
+  const dateMap = {};
+  allTransactions.forEach(t => { dateMap[t.date] = (dateMap[t.date] || 0) + t.amount; });
+  const dLabels = Object.keys(dateMap);
+  chartInstances['dateChart'] = new Chart(document.getElementById('dateChart'), {
+    type: 'bar',
+    data: { labels: dLabels, datasets: [{ label: 'Amount', data: dLabels.map(d => +dateMap[d].toFixed(2)), backgroundColor: 'rgba(56,139,253,.7)', borderColor: '#388bfd', borderWidth: 1, borderRadius: 4 }] },
+    options: chartOpts()
+  });
+
+  // Pie chart
+  const memberMap = {};
+  allTransactions.forEach(t => { memberMap[t.name] = (memberMap[t.name] || 0) + Math.abs(t.amount); });
+  const pieEntries = Object.entries(memberMap).sort((a,b) => b[1]-a[1]);
+  const palette = ['#388bfd','#3fb950','#f85149','#d29922','#bc8cff','#39d353','#79c0ff','#ffb86c','#ff6e96','#56d364','#ffa657','#db61a2'];
+  chartInstances['pieChart'] = new Chart(document.getElementById('pieChart'), {
+    type: 'doughnut',
+    data: { labels: pieEntries.map(e=>e[0]), datasets: [{ data: pieEntries.map(e=>+e[1].toFixed(2)), backgroundColor: palette, borderColor: '#1c2128', borderWidth: 2, hoverOffset: 6 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'right', labels: { color: '#8b949e', font: { size: 11 }, padding: 10, usePointStyle: true } }, tooltip: { backgroundColor: '#1c2128', borderColor: '#30363d', borderWidth: 1, titleColor: '#e6edf3', bodyColor: '#8b949e', callbacks: { label: ctx => ` ${ctx.label}: ${fmt(ctx.parsed)}` } } } }
+  });
+}
+
+function renderMembersTable() {
+  const rows = allMembers.filter(m => m.member !== '_init').map(m => `
+    <tr>
+      <td><span class="avatar">${m.member.slice(0,2).toUpperCase()}</span>${m.member}</td>
+      <td class="num ${colorVal(m.pending)}">${m.pending !== 0 ? fmt(m.pending) : '<span class="muted">—</span>'}</td>
+      <td class="num ${colorVal(m.income)}">${m.income !== 0 ? fmt(m.income) : '<span class="muted">—</span>'}</td>
+      <td class="num ${colorVal(m.etc)}">${m.etc !== 0 ? fmt(m.etc) : '<span class="muted">—</span>'}</td>
+      <td class="num ${colorVal(m.from3Team)}">${m.from3Team !== 0 ? fmt(m.from3Team) : '<span class="muted">—</span>'}</td>
+      <td class="num ${colorVal(m.result)}"><strong>${fmt(m.result)}</strong></td>
+    </tr>`).join('');
+  document.getElementById('members-table-body').innerHTML = rows;
+}
+
+function renderTopMembers() {
+  const top5 = allMembers.filter(m => m.member !== '_init').sort((a,b) => Math.abs(b.result)-Math.abs(a.result)).slice(0,5);
+  document.getElementById('top-members').innerHTML = top5.map((m,i) => `
+    <div class="mini-row">
+      <div class="mini-rank">${i+1}</div>
+      <span class="avatar">${m.member.slice(0,2).toUpperCase()}</span>
+      <div class="mini-info">
+        <div class="mini-name">${m.member}</div>
+        <div class="mini-detail">Pending: ${fmt(m.pending)} · Income: ${fmt(m.income)}</div>
+      </div>
+      <div class="mini-result ${colorVal(m.result)}">${fmt(m.result)}</div>
+    </div>`).join('');
+}
+
+function renderTimeline() {
+  const dateMap = {};
+  allTransactions.forEach(t => {
+    if (!dateMap[t.date]) dateMap[t.date] = { count: 0, total: 0 };
+    dateMap[t.date].count++; dateMap[t.date].total += t.amount;
+  });
+  const order = ['Feb 26','Mar 5','Mar 10','Mar 18','Mar 20','Mar 24','Mar 25'];
+  document.getElementById('timeline').innerHTML = order.filter(d => dateMap[d]).map(d => `
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-date">${d}</div>
+      <div class="tl-stats">
+        <span class="tl-count">${dateMap[d].count} tx</span>
+        <span class="red">${fmt(dateMap[d].total)}</span>
+      </div>
+    </div>`).join('');
+}
+
+function renderTransactions(filter = '') {
+  const list = filter
+    ? allTransactions.filter(t => [t.date, t.name, String(t.amount), t.transactionHash||''].join(' ').toLowerCase().includes(filter.toLowerCase()))
+    : allTransactions;
+  document.getElementById('tx-table-body').innerHTML = list.map(t => {
+    const isEth = t.transactionHash && t.transactionHash.includes('etherscan');
+    const isBsc = t.transactionHash && t.transactionHash.includes('bscscan');
+    const hashCell = t.transactionHash && t.transactionHash.startsWith('http')
+      ? `<span class="badge ${isEth?'eth':'bsc'}">${isEth?'ETH':'BSC'}</span> <a href="${t.transactionHash}" target="_blank" class="tx-link">${t.transactionHash.slice(0,50)}…</a>`
+      : `<span class="muted">${t.transactionHash || '—'}</span>`;
+    return `<tr>
+      <td>${t.date}</td>
+      <td><span class="avatar">${t.name.slice(0,2).toUpperCase()}</span>${t.name}</td>
+      <td class="num red">${fmt(t.amount)}</td>
+      <td>${hashCell}</td>
+    </tr>`;
+  }).join('');
+}
+
+function filterTransactions() {
+  renderTransactions(document.getElementById('tx-search').value);
+}
+
+// --- NEW MONTH ---
+function openNewMonthModal() {
+  document.getElementById('nm-period').value = '';
+  document.getElementById('nm-error').style.display = 'none';
+  document.getElementById('nm-save').disabled = false;
+  document.getElementById('new-month-overlay').classList.add('open');
+  document.getElementById('nm-period').focus();
+}
+function closeNewMonthModal() {
+  document.getElementById('new-month-overlay').classList.remove('open');
+}
+async function createNewMonth() {
+  const period = document.getElementById('nm-period').value.trim();
+  const errEl = document.getElementById('nm-error');
+  if (!period) { errEl.textContent = 'Please enter a month and year.'; errEl.style.display = 'block'; return; }
+  if (allPeriods.includes(period)) { errEl.textContent = `"${period}" already exists. Select it from the dropdown.`; errEl.style.display = 'block'; return; }
+  const btn = document.getElementById('nm-save');
+  btn.disabled = true;
+  // Create a placeholder member entry so the period appears in the list
+  await fetch(API + '/members', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ member: '_init', period, pending: 0, income: 0, etc: 0, from3Team: 0, result: 0 })
+  });
+  allPeriods.push(period);
+  currentPeriod = period;
+  renderPeriodSelect();
+  closeNewMonthModal();
+  await loadPeriod(period);
+  showToast('✓ April report started!');
+  btn.disabled = false;
+}
+
+// --- TX HASH AUTO-LOOKUP ---
+let hashTimer = null;
+function onHashInput() {
+  const hash = document.getElementById('f-hash').value.trim();
+  const status = document.getElementById('hash-status');
+  clearTimeout(hashTimer);
+
+  if (!hash || !hash.match(/0x[a-fA-F0-9]{64}/)) {
+    status.style.display = 'none';
+    return;
+  }
+
+  status.style.display = 'block';
+  status.style.color = 'var(--muted)';
+  status.textContent = '⏳ Fetching amount from blockchain...';
+
+  hashTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`${API}/tx-lookup?hash=${encodeURIComponent(hash)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      document.getElementById('f-amount').value = -Math.abs(data.amount);
+      status.style.color = 'var(--green)';
+      status.textContent = `✓ ${data.amount} ${data.type} fetched (USD: $${data.usd_value ?? data.amount})`;
+    } catch(e) {
+      status.style.color = 'var(--red)';
+      status.textContent = `✗ ${e.message}`;
+    }
+  }, 600);
+}
+
+// --- ADD TRANSACTION ---
+function openModal() {
+  document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-amount').value = '';
+  document.getElementById('f-hash').value = '';
+  document.getElementById('hash-status').style.display = 'none';
+  document.getElementById('form-error').style.display = 'none';
+  document.getElementById('btn-save').disabled = false;
+  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('f-date').focus();
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+}
+
+function formatDate(val) {
+  if (!val) return '';
+  const d = new Date(val + 'T00:00:00');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[d.getMonth()] + ' ' + d.getDate();
+}
+
+async function submitTransaction() {
+  const date   = formatDate(document.getElementById('f-date').value);
+  const name   = document.getElementById('f-name').value.trim();
+  const amount = document.getElementById('f-amount').value.trim();
+  const hash   = document.getElementById('f-hash').value.trim();
+  const errEl  = document.getElementById('form-error');
+
+  if (!date || !name || amount === '') {
+    errEl.textContent = 'Date, Name and Amount are required.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+  errEl.style.display = 'none';
+
+  try {
+    const res = await fetch(API + '/transactions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ date, name, amount: parseFloat(amount), transactionHash: hash || null, period: currentPeriod })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || 'Server error');
+    }
+    const saved = await res.json();
+    allTransactions.push(saved);
+    closeModal();
+    showToast();
+    renderTransactions();
+    renderCharts();
+    renderTimeline();
+    renderTopMembers();
+    const s = await fetch(`${API}/summary?period=${encodeURIComponent(currentPeriod)}`).then(r => r.json());
+    summary = s;
+    renderSummaryCards();
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Save Transaction';
+  }
+}
+
+function showToast(msg = '✓ Transaction added!') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 2500);
+}
+
+loadAll();
+</script>
+</body>
+</html>
