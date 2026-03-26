@@ -568,6 +568,9 @@ if (hashParams.get('reset')) {
 
 const fmt = n => (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const colorVal = n => n > 0 ? 'green' : n < 0 ? 'red' : 'muted';
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function periodToDate(p) { const [m, y] = p.split(' '); return new Date(+y, MONTHS.indexOf(m)); }
+function periodGte(a, b) { return periodToDate(a) >= periodToDate(b); }
 
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -628,9 +631,7 @@ async function loadPeriod(period) {
   }
 
   // Auto-calculate income from transactions for Apr 2026+
-  const sortedForIncome = allPeriods.filter(p => p !== '_init').sort();
-  const firstAutoIncomePeriod = 'Apr 2026';
-  if (period >= firstAutoIncomePeriod) {
+  if (periodGte(period, 'Apr 2026')) {
     await apiFetch(API + '/members/recalculate-income', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ period }) });
     allMembers = await apiFetch(`${API}/members?period=${encodeURIComponent(period)}`).then(r => r.json());
   }
@@ -745,19 +746,19 @@ function renderMembersTable() {
     <tr id="mrow-${m.member}">
       <td><span class="avatar">${m.member.slice(0,2).toUpperCase()}</span>${m.member}</td>
       <td class="num editable-cell" onclick="editMemberCell('${m.member}','pending',${m.pending})" title="Click to edit">${m.pending !== 0 ? fmt(m.pending) : '<span class="muted">—</span>'}</td>
-      ${currentPeriod >= 'Apr 2026'
+      ${periodGte(currentPeriod, 'Apr 2026')
         ? `<td class="num">${m.income !== 0 ? fmt(m.income) : '<span class="muted">—</span>'}</td>`
         : `<td class="num editable-cell" onclick="editMemberCell('${m.member}','income',${m.income})" title="Click to edit">${m.income !== 0 ? fmt(m.income) : '<span class="muted">—</span>'}</td>`
       }
       <td class="num editable-cell" onclick="editMemberCell('${m.member}','etc',${m.etc})" title="Click to edit">${m.etc !== 0 ? fmt(m.etc) : '<span class="muted">—</span>'}</td>
-      <td class="num editable-cell ${colorVal(m.result)}" ${currentPeriod < 'Apr 2026' ? `onclick="editMemberCell('${m.member}','result',${m.result})" title="Click to edit"` : ''}><strong>${fmt(m.result)}</strong></td>
+      <td class="num editable-cell ${colorVal(m.result)}" ${!periodGte(currentPeriod, 'Apr 2026') ? `onclick="editMemberCell('${m.member}','result',${m.result})" title="Click to edit"` : ''}><strong>${fmt(m.result)}</strong></td>
     </tr>`).join('');
   document.getElementById('members-table-body').innerHTML = rows;
 }
 
 function editMemberCell(memberName, field, currentVal) {
   const row = document.getElementById('mrow-' + memberName);
-  const fields = currentPeriod < 'Apr 2026' ? ['pending','income','etc','result'] : ['pending','etc'];
+  const fields = !periodGte(currentPeriod, 'Apr 2026') ? ['pending','income','etc','result'] : ['pending','etc'];
   const fieldIdx = fields.indexOf(field);
   const td = row.querySelectorAll('.editable-cell')[fieldIdx];
 
