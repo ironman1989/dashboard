@@ -627,6 +627,14 @@ async function loadPeriod(period) {
     allMembers = await apiFetch(`${API}/members?period=${encodeURIComponent(period)}`).then(r => r.json());
   }
 
+  // Auto-calculate income from transactions for Apr 2026+
+  const sortedForIncome = allPeriods.filter(p => p !== '_init').sort();
+  const firstAutoIncomePeriod = 'Apr 2026';
+  if (period >= firstAutoIncomePeriod) {
+    await apiFetch(API + '/members/recalculate-income', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ period }) });
+    allMembers = await apiFetch(`${API}/members?period=${encodeURIComponent(period)}`).then(r => r.json());
+  }
+
   renderSummaryCards();
   renderCharts();
   renderMembersTable();
@@ -737,7 +745,10 @@ function renderMembersTable() {
     <tr id="mrow-${m.member}">
       <td><span class="avatar">${m.member.slice(0,2).toUpperCase()}</span>${m.member}</td>
       <td class="num editable-cell" onclick="editMemberCell('${m.member}','pending',${m.pending})" title="Click to edit">${m.pending !== 0 ? fmt(m.pending) : '<span class="muted">—</span>'}</td>
-      <td class="num editable-cell" onclick="editMemberCell('${m.member}','income',${m.income})" title="Click to edit">${m.income !== 0 ? fmt(m.income) : '<span class="muted">—</span>'}</td>
+      ${currentPeriod >= 'Apr 2026'
+        ? `<td class="num">${m.income !== 0 ? fmt(m.income) : '<span class="muted">—</span>'}</td>`
+        : `<td class="num editable-cell" onclick="editMemberCell('${m.member}','income',${m.income})" title="Click to edit">${m.income !== 0 ? fmt(m.income) : '<span class="muted">—</span>'}</td>`
+      }
       <td class="num editable-cell" onclick="editMemberCell('${m.member}','etc',${m.etc})" title="Click to edit">${m.etc !== 0 ? fmt(m.etc) : '<span class="muted">—</span>'}</td>
       <td class="num ${colorVal(m.result)}"><strong>${fmt(m.result)}</strong></td>
     </tr>`).join('');

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Member = require('../models/Member');
+const Transaction = require('../models/Transaction');
 
 // GET all members for a period (excluding TOTAL row)
 router.get('/', async (req, res) => {
@@ -20,6 +21,25 @@ router.get('/periods/list', async (req, res) => {
   try {
     const periods = await Member.distinct('period');
     res.json(periods.sort());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST recalculate income from transactions (income = -sum of tx amounts per member)
+router.post('/recalculate-income', async (req, res) => {
+  try {
+    const { period } = req.body;
+    if (!period) return res.status(400).json({ error: 'period is required' });
+    const transactions = await Transaction.find({ period });
+    const totals = {};
+    transactions.forEach(t => { totals[t.name] = (totals[t.name] || 0) + t.amount; });
+    const updates = await Promise.all(
+      Object.entries(totals).map(([member, sum]) =>
+        Member.findOneAndUpdate({ member, period }, { $set: { income: parseFloat((-sum).toFixed(2)) } }, { new: true })
+      )
+    );
+    res.json({ updated: updates.filter(Boolean).length });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
