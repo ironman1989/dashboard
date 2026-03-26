@@ -117,6 +117,8 @@
     .green { color: var(--green); }
     .red { color: var(--red); }
     .muted { color: var(--muted); }
+    .editable-cell { cursor: pointer; }
+    .editable-cell:hover { background: rgba(56,139,253,.08); border-radius: 4px; }
     .blue { color: var(--blue); }
 
     /* AVATAR */
@@ -727,16 +729,50 @@ function renderCharts() {
 
 
 function renderMembersTable() {
-  const rows = allMembers.filter(m => m.member !== '_init').map(m => `
-    <tr>
+  const members = allMembers.filter(m => m.member !== '_init');
+  if (!members.length) {
+    document.getElementById('members-table-body').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#8b949e;padding:24px">No member data for this period.</td></tr>';
+    return;
+  }
+  const rows = members.map(m => `
+    <tr id="mrow-${m.member}">
       <td><span class="avatar">${m.member.slice(0,2).toUpperCase()}</span>${m.member}</td>
-      <td class="num ${colorVal(m.pending)}">${m.pending !== 0 ? fmt(m.pending) : '<span class="muted">—</span>'}</td>
-      <td class="num ${colorVal(m.income)}">${m.income !== 0 ? fmt(m.income) : '<span class="muted">—</span>'}</td>
-      <td class="num ${colorVal(m.etc)}">${m.etc !== 0 ? fmt(m.etc) : '<span class="muted">—</span>'}</td>
-      <td class="num ${colorVal(m.from3Team)}">${m.from3Team !== 0 ? fmt(m.from3Team) : '<span class="muted">—</span>'}</td>
+      <td class="num editable-cell" onclick="editMemberCell('${m.member}','pending',${m.pending})" title="Click to edit">${m.pending !== 0 ? fmt(m.pending) : '<span class="muted">—</span>'}</td>
+      <td class="num editable-cell" onclick="editMemberCell('${m.member}','income',${m.income})" title="Click to edit">${m.income !== 0 ? fmt(m.income) : '<span class="muted">—</span>'}</td>
+      <td class="num editable-cell" onclick="editMemberCell('${m.member}','etc',${m.etc})" title="Click to edit">${m.etc !== 0 ? fmt(m.etc) : '<span class="muted">—</span>'}</td>
+      <td class="num editable-cell" onclick="editMemberCell('${m.member}','from3Team',${m.from3Team})" title="Click to edit">${m.from3Team !== 0 ? fmt(m.from3Team) : '<span class="muted">—</span>'}</td>
       <td class="num ${colorVal(m.result)}"><strong>${fmt(m.result)}</strong></td>
     </tr>`).join('');
   document.getElementById('members-table-body').innerHTML = rows;
+}
+
+function editMemberCell(memberName, field, currentVal) {
+  const row = document.getElementById('mrow-' + memberName);
+  const fields = ['pending','income','etc','from3Team'];
+  const fieldIdx = fields.indexOf(field);
+  const td = row.querySelectorAll('.editable-cell')[fieldIdx];
+
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.value = currentVal;
+  input.style.cssText = 'width:90px;background:#0d1117;border:1px solid #388bfd;border-radius:4px;color:#e6edf3;padding:4px 6px;font-size:13px;text-align:right';
+  td.innerHTML = '';
+  td.appendChild(input);
+  input.focus();
+  input.select();
+
+  async function save() {
+    const newVal = parseFloat(input.value) || 0;
+    const member = allMembers.find(m => m.member === memberName);
+    if (!member) return;
+    const body = { member: memberName, period: currentPeriod, pending: member.pending, income: member.income, etc: member.etc, from3Team: member.from3Team, result: member.result };
+    body[field] = newVal;
+    await apiFetch(API + '/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    await loadPeriod(currentPeriod);
+  }
+
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') input.blur(); if (e.key === 'Escape') loadPeriod(currentPeriod); });
 }
 
 function renderTopMembers() {
@@ -812,12 +848,12 @@ async function createNewMonth() {
   if (allPeriods.includes(period)) { errEl.textContent = `"${period}" already exists. Select it from the dropdown.`; errEl.style.display = 'block'; return; }
   const btn = document.getElementById('nm-save');
   btn.disabled = true;
-  // Create a placeholder member entry so the period appears in the list
-  await apiFetch(API + '/members', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ member: '_init', period, pending: 0, income: 0, etc: 0, from3Team: 0, result: 0 })
-  });
+  // Create all 14 members for the new period with zero values
+  const defaultMembers = ['KDD','RUH','KJY','RHC','SCU','HHI','RMS','RUS','KHG','KMG','JGC','KIS','JHH','SMH'];
+  await Promise.all([
+    apiFetch(API + '/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ member: '_init', period, pending: 0, income: 0, etc: 0, from3Team: 0, result: 0 }) }),
+    ...defaultMembers.map(name => apiFetch(API + '/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ member: name, period, pending: 0, income: 0, etc: 0, from3Team: 0, result: 0 }) }))
+  ]);
   allPeriods.push(period);
   currentPeriod = period;
   renderPeriodSelect();
