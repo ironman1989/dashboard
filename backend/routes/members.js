@@ -27,19 +27,29 @@ router.get('/periods/list', async (req, res) => {
 });
 
 // POST recalculate income and result from transactions
-// income = -(sum of tx amounts per member), result = pending + income + etc
+// Apr 2026+: income = -(sum of tx), result = pending + income + etc
+// Before Apr 2026: result = pending + income + etc + from3Team (income kept as-is)
 router.post('/recalculate-income', async (req, res) => {
   try {
     const { period } = req.body;
     if (!period) return res.status(400).json({ error: 'period is required' });
+
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const [m, y] = period.split(' ');
+    const periodDate = new Date(+y, MONTHS.indexOf(m));
+    const aprDate = new Date(2026, 3); // Apr 2026
+    const isAutoIncome = periodDate >= aprDate;
+
     const transactions = await Transaction.find({ period });
     const totals = {};
     transactions.forEach(t => { totals[t.name] = (totals[t.name] || 0) + t.amount; });
 
     const members = await Member.find({ period, member: { $nin: ['_init', 'TOTAL'] } });
     const updates = await Promise.all(members.map(m => {
-      const income = parseFloat((-(totals[m.member] || 0)).toFixed(2));
-      const result = parseFloat((m.pending + income + m.etc).toFixed(2));
+      const income = isAutoIncome ? parseFloat((-(totals[m.member] || 0)).toFixed(2)) : m.income;
+      const result = isAutoIncome
+        ? parseFloat((m.pending + income + m.etc).toFixed(2))
+        : parseFloat((m.pending + income + m.etc + m.from3Team).toFixed(2));
       return Member.findOneAndUpdate({ member: m.member, period }, { $set: { income, result } }, { new: true });
     }));
     res.json({ updated: updates.filter(Boolean).length });

@@ -630,11 +630,9 @@ async function loadPeriod(period) {
     allMembers = await apiFetch(`${API}/members?period=${encodeURIComponent(period)}`).then(r => r.json());
   }
 
-  // Auto-calculate income from transactions for Apr 2026+
-  if (periodGte(period, 'Apr 2026')) {
-    await apiFetch(API + '/members/recalculate-income', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ period }) });
-    allMembers = await apiFetch(`${API}/members?period=${encodeURIComponent(period)}`).then(r => r.json());
-  }
+  // Recalculate result (and income for Apr 2026+) on every period load
+  await apiFetch(API + '/members/recalculate-income', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ period }) });
+  allMembers = await apiFetch(`${API}/members?period=${encodeURIComponent(period)}`).then(r => r.json());
 
   renderSummaryCards();
   renderCharts();
