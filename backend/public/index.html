@@ -380,16 +380,8 @@
     <div class="chart-title" style="margin-bottom:4px">Member Pending Summary</div>
     <div class="chart-sub">All columns: Pending, Income, Etc, Result</div>
     <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Member</th>
-            <th class="num">Pending</th>
-            <th class="num">Income</th>
-            <th class="num">Etc</th>
-            <th class="num">Result</th>
-          </tr>
-        </thead>
+      <table id="members-table">
+        <thead id="members-table-head"></thead>
         <tbody id="members-table-body"></tbody>
       </table>
     </div>
@@ -736,27 +728,42 @@ function renderCharts() {
 
 function renderMembersTable() {
   const members = allMembers.filter(m => m.member !== '_init');
+  const isNewPeriod = periodGte(currentPeriod, 'Apr 2026');
+  const cols = isNewPeriod ? 5 : 6;
+
+  // Render header
+  document.getElementById('members-table-head').innerHTML = `<tr>
+    <th>Member</th>
+    <th class="num">Pending</th>
+    <th class="num">Income</th>
+    <th class="num">Etc</th>
+    ${!isNewPeriod ? '<th class="num">From 3Team</th>' : ''}
+    <th class="num">Result</th>
+  </tr>`;
+
   if (!members.length) {
-    document.getElementById('members-table-body').innerHTML = '<tr><td colspan="6" style="text-align:center;color:#8b949e;padding:24px">No member data for this period.</td></tr>';
+    document.getElementById('members-table-body').innerHTML = `<tr><td colspan="${cols}" style="text-align:center;color:#8b949e;padding:24px">No member data for this period.</td></tr>`;
     return;
   }
+
   const rows = members.map(m => `
     <tr id="mrow-${m.member}">
       <td><span class="avatar">${m.member.slice(0,2).toUpperCase()}</span>${m.member}</td>
       <td class="num editable-cell" onclick="editMemberCell('${m.member}','pending',${m.pending})" title="Click to edit">${m.pending !== 0 ? fmt(m.pending) : '<span class="muted">—</span>'}</td>
-      ${periodGte(currentPeriod, 'Apr 2026')
+      ${isNewPeriod
         ? `<td class="num">${m.income !== 0 ? fmt(m.income) : '<span class="muted">—</span>'}</td>`
         : `<td class="num editable-cell" onclick="editMemberCell('${m.member}','income',${m.income})" title="Click to edit">${m.income !== 0 ? fmt(m.income) : '<span class="muted">—</span>'}</td>`
       }
       <td class="num editable-cell" onclick="editMemberCell('${m.member}','etc',${m.etc})" title="Click to edit">${m.etc !== 0 ? fmt(m.etc) : '<span class="muted">—</span>'}</td>
-      <td class="num editable-cell ${colorVal(m.result)}" ${!periodGte(currentPeriod, 'Apr 2026') ? `onclick="editMemberCell('${m.member}','result',${m.result})" title="Click to edit"` : ''}><strong>${fmt(m.result)}</strong></td>
+      ${!isNewPeriod ? `<td class="num editable-cell" onclick="editMemberCell('${m.member}','from3Team',${m.from3Team})" title="Click to edit">${m.from3Team !== 0 ? fmt(m.from3Team) : '<span class="muted">—</span>'}</td>` : ''}
+      <td class="num ${colorVal(m.result)}"><strong>${fmt(m.result)}</strong></td>
     </tr>`).join('');
   document.getElementById('members-table-body').innerHTML = rows;
 }
 
 function editMemberCell(memberName, field, currentVal) {
   const row = document.getElementById('mrow-' + memberName);
-  const fields = !periodGte(currentPeriod, 'Apr 2026') ? ['pending','income','etc','result'] : ['pending','etc'];
+  const fields = !periodGte(currentPeriod, 'Apr 2026') ? ['pending','income','etc','from3Team'] : ['pending','etc'];
   const fieldIdx = fields.indexOf(field);
   const td = row.querySelectorAll('.editable-cell')[fieldIdx];
 
