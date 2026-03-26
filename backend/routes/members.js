@@ -25,6 +25,21 @@ router.get('/periods/list', async (req, res) => {
   }
 });
 
+// POST seed pending of a period from result of another period
+router.post('/seed-pending', async (req, res) => {
+  try {
+    const { fromPeriod, toPeriod } = req.body;
+    if (!fromPeriod || !toPeriod) return res.status(400).json({ error: 'fromPeriod and toPeriod are required' });
+    const fromMembers = await Member.find({ period: fromPeriod, member: { $ne: '_init' } });
+    const updates = await Promise.all(fromMembers.map(fm =>
+      Member.findOneAndUpdate({ member: fm.member, period: toPeriod }, { $set: { pending: fm.result } }, { new: true })
+    ));
+    res.json({ message: `Seeded pending for ${updates.filter(Boolean).length} members in ${toPeriod}` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST copy pending from one period as result of another period
 router.post('/carry-forward', async (req, res) => {
   try {
