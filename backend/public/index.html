@@ -378,7 +378,7 @@
 
   <div class="chart-card">
     <div class="chart-title" style="margin-bottom:4px">Member Pending Summary</div>
-    <div class="chart-sub">All columns: Pending, Income, Etc, From 3Team, Result</div>
+    <div class="chart-sub">All columns: Pending, Income, Etc, Result</div>
     <div class="table-wrap">
       <table>
         <thead>
@@ -387,7 +387,6 @@
             <th class="num">Pending</th>
             <th class="num">Income</th>
             <th class="num">Etc</th>
-            <th class="num">From 3Team</th>
             <th class="num">Result</th>
           </tr>
         </thead>
@@ -740,7 +739,6 @@ function renderMembersTable() {
       <td class="num editable-cell" onclick="editMemberCell('${m.member}','pending',${m.pending})" title="Click to edit">${m.pending !== 0 ? fmt(m.pending) : '<span class="muted">—</span>'}</td>
       <td class="num editable-cell" onclick="editMemberCell('${m.member}','income',${m.income})" title="Click to edit">${m.income !== 0 ? fmt(m.income) : '<span class="muted">—</span>'}</td>
       <td class="num editable-cell" onclick="editMemberCell('${m.member}','etc',${m.etc})" title="Click to edit">${m.etc !== 0 ? fmt(m.etc) : '<span class="muted">—</span>'}</td>
-      <td class="num editable-cell" onclick="editMemberCell('${m.member}','from3Team',${m.from3Team})" title="Click to edit">${m.from3Team !== 0 ? fmt(m.from3Team) : '<span class="muted">—</span>'}</td>
       <td class="num ${colorVal(m.result)}"><strong>${fmt(m.result)}</strong></td>
     </tr>`).join('');
   document.getElementById('members-table-body').innerHTML = rows;
@@ -748,7 +746,7 @@ function renderMembersTable() {
 
 function editMemberCell(memberName, field, currentVal) {
   const row = document.getElementById('mrow-' + memberName);
-  const fields = ['pending','income','etc','from3Team'];
+  const fields = ['pending','income','etc'];
   const fieldIdx = fields.indexOf(field);
   const td = row.querySelectorAll('.editable-cell')[fieldIdx];
 
@@ -765,7 +763,7 @@ function editMemberCell(memberName, field, currentVal) {
     const newVal = parseFloat(input.value) || 0;
     const member = allMembers.find(m => m.member === memberName);
     if (!member) return;
-    const body = { member: memberName, period: currentPeriod, pending: member.pending, income: member.income, etc: member.etc, from3Team: member.from3Team, result: member.result };
+    const body = { member: memberName, period: currentPeriod, pending: member.pending, income: member.income, etc: member.etc, from3Team: member.from3Team || 0, result: member.result };
     body[field] = newVal;
     await apiFetch(API + '/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
 
