@@ -119,6 +119,27 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// One-time data fix: seed pending from previous period result (no auth, localhost only)
+app.get('/api/fix-pending', async (req, res) => {
+  try {
+    const { from, to } = req.query;
+    if (!from || !to) return res.status(400).json({ error: 'from and to query params required' });
+    const fromMembers = await Member.find({ period: from, member: { $nin: ['_init', 'TOTAL'] } });
+    const results = [];
+    for (const fm of fromMembers) {
+      const updated = await Member.findOneAndUpdate(
+        { member: fm.member, period: to },
+        { $set: { pending: fm.result } },
+        { new: true }
+      );
+      if (updated) results.push({ member: fm.member, pending: fm.result });
+    }
+    res.json({ updated: results.length, results });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
