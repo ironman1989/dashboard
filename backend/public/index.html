@@ -746,6 +746,8 @@ function renderMembersTable() {
     return;
   }
 
+  if (isNewPeriod) members.sort((a, b) => a.pending - b.pending);
+
   const rows = members.map(m => `
     <tr id="mrow-${m.member}">
       <td><span class="avatar">${m.member.slice(0,2).toUpperCase()}</span>${m.member}</td>
