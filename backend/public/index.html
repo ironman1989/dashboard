@@ -608,6 +608,24 @@ async function loadPeriod(period) {
     apiFetch(`${API}/transactions?period=${encodeURIComponent(period)}`).then(r => r.json())
   ]);
   summary = s; allMembers = m; allTransactions = t;
+
+  // Auto: apply current period's pending as result of the previous period
+  const sortedPeriods = allPeriods.filter(p => p !== '_init').sort();
+  const idx = sortedPeriods.indexOf(period);
+  if (idx > 0) {
+    const prevPeriod = sortedPeriods[idx - 1];
+    apiFetch(API + '/members/carry-forward', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fromPeriod: period, toPeriod: prevPeriod })
+    }).then(r => r.json()).then(data => {
+      if (data.updated?.length) {
+        // Refresh members table silently if we're on previous period
+        if (currentPeriod === prevPeriod) loadPeriod(prevPeriod);
+      }
+    }).catch(() => {});
+  }
+
   renderSummaryCards();
   renderCharts();
   renderMembersTable();
@@ -706,6 +724,7 @@ function renderCharts() {
     options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'right', labels: { color: '#8b949e', font: { size: 11 }, padding: 10, usePointStyle: true } }, tooltip: { backgroundColor: '#1c2128', borderColor: '#30363d', borderWidth: 1, titleColor: '#e6edf3', bodyColor: '#8b949e', callbacks: { label: ctx => ` ${ctx.label}: ${fmt(ctx.parsed)}` } } } }
   });
 }
+
 
 function renderMembersTable() {
   const rows = allMembers.filter(m => m.member !== '_init').map(m => `

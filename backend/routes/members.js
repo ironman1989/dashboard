@@ -25,6 +25,30 @@ router.get('/periods/list', async (req, res) => {
   }
 });
 
+// POST copy pending from one period as result of another period
+router.post('/carry-forward', async (req, res) => {
+  try {
+    const { fromPeriod, toPeriod } = req.body;
+    if (!fromPeriod || !toPeriod) return res.status(400).json({ error: 'fromPeriod and toPeriod are required' });
+
+    const fromMembers = await Member.find({ period: fromPeriod, member: { $ne: '_init' } });
+    if (!fromMembers.length) return res.status(404).json({ error: `No members found for period: ${fromPeriod}` });
+
+    const updates = await Promise.all(fromMembers.map(fm =>
+      Member.findOneAndUpdate(
+        { member: fm.member, period: toPeriod },
+        { $set: { result: fm.pending } },
+        { new: true }
+      )
+    ));
+
+    const updated = updates.filter(Boolean);
+    res.json({ message: `Updated result for ${updated.length} members in ${toPeriod}`, updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST create or update a member for a period
 router.post('/', async (req, res) => {
   try {
