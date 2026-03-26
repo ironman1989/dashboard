@@ -611,12 +611,10 @@ async function loadPeriod(period) {
   ]);
   summary = s; allMembers = m; allTransactions = t;
 
-  // Auto-seed all 14 members if this period has no member rows, or fix if all pending are zero
+  // Seed members if period has none yet — use previous period's result as starting pending
   const realMembers = m.filter(x => x.member !== '_init');
-  const allPendingZero = realMembers.length > 0 && realMembers.every(x => x.pending === 0);
-  if (!realMembers.length || allPendingZero) {
+  if (!realMembers.length) {
     const defaultMembers = ['KDD','RUH','KJY','RHC','SCU','HHI','RMS','RUS','KHG','KMG','JGC','KIS','JHH','SMH'];
-    // Use previous period's result as pending for the new period
     const sortedAll = allPeriods.filter(p => p !== '_init').sort();
     const prevPeriod = sortedAll[sortedAll.indexOf(period) - 1];
     let prevResults = {};
@@ -624,32 +622,10 @@ async function loadPeriod(period) {
       const prevMembers = await apiFetch(`${API}/members?period=${encodeURIComponent(prevPeriod)}`).then(r => r.json());
       prevMembers.forEach(pm => { prevResults[pm.member] = pm.result || 0; });
     }
-    if (!realMembers.length) {
-      await Promise.all(defaultMembers.map(name =>
-        apiFetch(API + '/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ member: name, period, pending: prevResults[name] || 0, income: 0, etc: 0, from3Team: 0, result: 0 }) })
-      ));
-    } else if (allPendingZero && prevPeriod) {
-      // Members exist but pending is all zero — seed from previous period's result
-      await apiFetch(API + '/members/seed-pending', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fromPeriod: prevPeriod, toPeriod: period }) });
-    }
+    await Promise.all(defaultMembers.map(name =>
+      apiFetch(API + '/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ member: name, period, pending: prevResults[name] || 0, income: 0, etc: 0, from3Team: 0, result: 0 }) })
+    ));
     allMembers = await apiFetch(`${API}/members?period=${encodeURIComponent(period)}`).then(r => r.json());
-  }
-
-  // Auto: apply current period's pending as result of the previous period
-  const sortedPeriods = allPeriods.filter(p => p !== '_init').sort();
-  const idx = sortedPeriods.indexOf(period);
-  if (idx > 0) {
-    const prevPeriod = sortedPeriods[idx - 1];
-    apiFetch(API + '/members/carry-forward', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fromPeriod: period, toPeriod: prevPeriod })
-    }).then(r => r.json()).then(data => {
-      if (data.updated?.length) {
-        // Refresh members table silently if we're on previous period
-        if (currentPeriod === prevPeriod) loadPeriod(prevPeriod);
-      }
-    }).catch(() => {});
   }
 
   renderSummaryCards();
@@ -792,6 +768,19 @@ function editMemberCell(memberName, field, currentVal) {
     const body = { member: memberName, period: currentPeriod, pending: member.pending, income: member.income, etc: member.etc, from3Team: member.from3Team, result: member.result };
     body[field] = newVal;
     await apiFetch(API + '/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+
+    // When pending is edited, update the previous period's result for this member
+    if (field === 'pending') {
+      const sortedAll = allPeriods.filter(p => p !== '_init').sort();
+      const prevPeriod = sortedAll[sortedAll.indexOf(currentPeriod) - 1];
+      if (prevPeriod) {
+        const prevMember = await apiFetch(`${API}/members?period=${encodeURIComponent(prevPeriod)}`).then(r => r.json()).then(list => list.find(x => x.member === memberName));
+        if (prevMember) {
+          await apiFetch(API + '/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...prevMember, result: newVal }) });
+        }
+      }
+    }
+
     await loadPeriod(currentPeriod);
   }
 
