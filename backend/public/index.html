@@ -750,14 +750,14 @@ function renderMembersTable() {
         : `<td class="num editable-cell" onclick="editMemberCell('${m.member}','income',${m.income})" title="Click to edit">${m.income !== 0 ? fmt(m.income) : '<span class="muted">—</span>'}</td>`
       }
       <td class="num editable-cell" onclick="editMemberCell('${m.member}','etc',${m.etc})" title="Click to edit">${m.etc !== 0 ? fmt(m.etc) : '<span class="muted">—</span>'}</td>
-      <td class="num ${colorVal(m.result)}"><strong>${fmt(m.result)}</strong></td>
+      <td class="num editable-cell ${colorVal(m.result)}" ${currentPeriod < 'Apr 2026' ? `onclick="editMemberCell('${m.member}','result',${m.result})" title="Click to edit"` : ''}><strong>${fmt(m.result)}</strong></td>
     </tr>`).join('');
   document.getElementById('members-table-body').innerHTML = rows;
 }
 
 function editMemberCell(memberName, field, currentVal) {
   const row = document.getElementById('mrow-' + memberName);
-  const fields = ['pending','income','etc'];
+  const fields = currentPeriod < 'Apr 2026' ? ['pending','income','etc','result'] : ['pending','etc'];
   const fieldIdx = fields.indexOf(field);
   const td = row.querySelectorAll('.editable-cell')[fieldIdx];
 

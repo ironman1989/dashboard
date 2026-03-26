@@ -26,7 +26,8 @@ router.get('/periods/list', async (req, res) => {
   }
 });
 
-// POST recalculate income from transactions (income = -sum of tx amounts per member)
+// POST recalculate income and result from transactions
+// income = -(sum of tx amounts per member), result = pending + income + etc
 router.post('/recalculate-income', async (req, res) => {
   try {
     const { period } = req.body;
@@ -34,11 +35,13 @@ router.post('/recalculate-income', async (req, res) => {
     const transactions = await Transaction.find({ period });
     const totals = {};
     transactions.forEach(t => { totals[t.name] = (totals[t.name] || 0) + t.amount; });
-    const updates = await Promise.all(
-      Object.entries(totals).map(([member, sum]) =>
-        Member.findOneAndUpdate({ member, period }, { $set: { income: parseFloat((-sum).toFixed(2)) } }, { new: true })
-      )
-    );
+
+    const members = await Member.find({ period, member: { $nin: ['_init', 'TOTAL'] } });
+    const updates = await Promise.all(members.map(m => {
+      const income = parseFloat((-(totals[m.member] || 0)).toFixed(2));
+      const result = parseFloat((m.pending + income + m.etc).toFixed(2));
+      return Member.findOneAndUpdate({ member: m.member, period }, { $set: { income, result } }, { new: true });
+    }));
     res.json({ updated: updates.filter(Boolean).length });
   } catch (err) {
     res.status(500).json({ error: err.message });
