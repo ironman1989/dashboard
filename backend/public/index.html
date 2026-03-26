@@ -611,6 +611,16 @@ async function loadPeriod(period) {
   ]);
   summary = s; allMembers = m; allTransactions = t;
 
+  // Auto-seed all 14 members if this period has no member rows yet
+  const realMembers = m.filter(x => x.member !== '_init');
+  if (!realMembers.length) {
+    const defaultMembers = ['KDD','RUH','KJY','RHC','SCU','HHI','RMS','RUS','KHG','KMG','JGC','KIS','JHH','SMH'];
+    await Promise.all(defaultMembers.map(name =>
+      apiFetch(API + '/members', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ member: name, period, pending: 0, income: 0, etc: 0, from3Team: 0, result: 0 }) })
+    ));
+    allMembers = await apiFetch(`${API}/members?period=${encodeURIComponent(period)}`).then(r => r.json());
+  }
+
   // Auto: apply current period's pending as result of the previous period
   const sortedPeriods = allPeriods.filter(p => p !== '_init').sort();
   const idx = sortedPeriods.indexOf(period);
