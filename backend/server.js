@@ -47,19 +47,16 @@ app.get('/api/summary', authMiddleware, async (req, res) => {
 
     const totalTransactions = transactions.length;
     const totalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
-    const totalResult = members.reduce((sum, m) => sum + m.result, 0);
-    const totalPending = members.reduce((sum, m) => sum + m.pending, 0);
-    const netResult = totalResult !== 0 ? totalResult : totalPending;
-
-    const positiveCount = members.filter(m => (m.result || m.pending) > 0).length;
-    const negativeCount = members.filter(m => (m.result || m.pending) < 0).length;
+    const realMembers = members.filter(m => m.member !== '_init');
+    const totalResult = realMembers.reduce((sum, m) => sum + m.result, 0);
+    const positiveCount = realMembers.filter(m => m.result > 0).length;
+    const negativeCount = realMembers.filter(m => m.result < 0).length;
 
     res.json({
       totalTransactions,
       totalAmount: parseFloat(totalAmount.toFixed(2)),
-      totalResult: parseFloat(netResult.toFixed(2)),
-      totalPending: parseFloat(totalPending.toFixed(2)),
-      totalMembers: members.filter(m => m.member !== '_init').length,
+      totalResult: parseFloat(totalResult.toFixed(2)),
+      totalMembers: realMembers.length,
       positiveMembers: positiveCount,
       negativeMembers: negativeCount
     });
