@@ -49,7 +49,7 @@ router.post('/recalculate-income', async (req, res) => {
       const income = isAutoIncome ? parseFloat((-(totals[m.member] || 0)).toFixed(2)) : m.income;
       const result = isAutoIncome
         ? parseFloat((m.pending + income + m.etc).toFixed(2))
-        : parseFloat((m.pending + income + m.etc + m.from3Team).toFixed(2));
+        : parseFloat((m.pending - income + m.etc + m.from3Team).toFixed(2));
       return Member.findOneAndUpdate({ member: m.member, period }, { $set: { income, result } }, { new: true });
     }));
     res.json({ updated: updates.filter(Boolean).length });
