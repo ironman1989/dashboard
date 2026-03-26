@@ -1,5 +1,5 @@
 const { Resend } = require('resend');
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY || 'placeholder');
 
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 const FROM_EMAIL = 'Financial Dashboard <onboarding@resend.dev>';
