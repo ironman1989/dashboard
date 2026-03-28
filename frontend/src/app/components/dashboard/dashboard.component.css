@@ -67,6 +67,30 @@
   color: var(--text-secondary);
 }
 
+/* Period Bar */
+.period-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.period-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.period-btn {
+  padding: 5px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.period-btn:hover { border-color: var(--accent-blue-light); color: var(--text-primary); }
+.period-btn.active { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; }
+
 /* Summary Grid */
 .summary-grid {
   display: grid;

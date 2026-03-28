@@ -102,10 +102,16 @@ router.post('/', async (req, res) => {
   try {
     const { member, pending, income, etc, from3Team, result, period } = req.body;
     if (!member || !period) return res.status(400).json({ error: 'member and period are required' });
+    const fields = {};
+    if (pending !== undefined) fields.pending = pending;
+    if (income !== undefined) fields.income = income;
+    if (etc !== undefined) fields.etc = etc;
+    if (from3Team !== undefined) fields.from3Team = from3Team;
+    if (result !== undefined) fields.result = result;
     const updated = await Member.findOneAndUpdate(
       { member: member.trim(), period },
-      { pending: pending || 0, income: income || 0, etc: etc || 0, from3Team: from3Team || 0, result: result || 0 },
-      { upsert: true, new: true }
+      { $set: fields },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
     );
     res.status(201).json(updated);
   } catch (err) {

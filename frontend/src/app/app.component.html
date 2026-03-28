@@ -28,7 +28,7 @@
       </div>
 
       <div class="nav-period">
-        <span class="period-badge">March 2025</span>
+        <span class="period-badge">{{ dataService.selectedPeriod || 'Loading...' }}</span>
       </div>
 
       <button class="hamburger" (click)="toggleMenu()" [class.open]="menuOpen">

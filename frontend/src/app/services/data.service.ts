@@ -8,6 +8,7 @@ export interface Transaction {
   name: string;
   amount: number;
   transactionHash: string | null;
+  period?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -20,6 +21,7 @@ export interface Member {
   etc: number;
   from3Team: number;
   result: number;
+  period?: string;
 }
 
 export interface Summary {
@@ -35,19 +37,33 @@ export interface Summary {
   providedIn: 'root'
 })
 export class DataService {
-  private apiBase = 'http://localhost:3000/api';
+  private apiBase = '/api';
+
+  periods: string[] = [];
+  selectedPeriod = '';
 
   constructor(private http: HttpClient) {}
 
-  getTransactions(): Observable<Transaction[]> {
-    return this.http.get<Transaction[]>(`${this.apiBase}/transactions`);
+  getPeriods(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.apiBase}/members/periods/list`);
   }
 
-  getMembers(): Observable<Member[]> {
-    return this.http.get<Member[]>(`${this.apiBase}/members`);
+  getTransactions(period?: string): Observable<Transaction[]> {
+    const params = period ? `?period=${encodeURIComponent(period)}` : '';
+    return this.http.get<Transaction[]>(`${this.apiBase}/transactions${params}`);
   }
 
-  getSummary(): Observable<Summary> {
-    return this.http.get<Summary>(`${this.apiBase}/summary`);
+  getMembers(period?: string): Observable<Member[]> {
+    const params = period ? `?period=${encodeURIComponent(period)}` : '';
+    return this.http.get<Member[]>(`${this.apiBase}/members${params}`);
+  }
+
+  getSummary(period?: string): Observable<Summary> {
+    const params = period ? `?period=${encodeURIComponent(period)}` : '';
+    return this.http.get<Summary>(`${this.apiBase}/summary${params}`);
+  }
+
+  addTransaction(tx: { date: string; name: string; amount: number; transactionHash: string | null; period: string }): Observable<Transaction> {
+    return this.http.post<Transaction>(`${this.apiBase}/transactions`, tx);
   }
 }

@@ -19,25 +19,85 @@ export class TransactionsComponent implements OnInit {
   sortKey: SortKey = 'date';
   sortDir: SortDir = 'asc';
 
-  // Pagination
   pageSize = 12;
   currentPage = 1;
 
-  // Date order for sorting
-  private dateOrder = [
-    'Feb 26', 'Mar 5', 'Mar 10', 'Mar 18', 'Mar 20', 'Mar 24', 'Mar 25'
-  ];
+  showForm = false;
+  formDate = '';
+  formName = '';
+  formAmount = '';
+  formHash = '';
+  formError = '';
+  formSaving = false;
 
-  constructor(private dataService: DataService) {}
+  constructor(public dataService: DataService) {}
 
   ngOnInit(): void {
+    if (this.dataService.selectedPeriod) {
+      this.loadTransactions();
+    } else {
+      this.dataService.getPeriods().subscribe({
+        next: (periods) => {
+          this.dataService.periods = periods;
+          this.dataService.selectedPeriod = periods[periods.length - 1] || '';
+          this.loadTransactions();
+        },
+        error: () => { this.error = 'Failed to load periods.'; this.loading = false; }
+      });
+    }
+  }
+
+  toggleForm(): void {
+    this.showForm = !this.showForm;
+    this.formError = '';
+  }
+
+  submitTransaction(): void {
+    if (!this.formDate.trim() || !this.formName.trim() || !this.formAmount) {
+      this.formError = 'Date, name and amount are required.';
+      return;
+    }
+    const amount = parseFloat(this.formAmount);
+    if (isNaN(amount)) {
+      this.formError = 'Amount must be a number.';
+      return;
+    }
+    this.formSaving = true;
+    this.formError = '';
+    this.dataService.addTransaction({
+      date: this.formDate.trim(),
+      name: this.formName.trim(),
+      amount,
+      transactionHash: this.formHash.trim() || null,
+      period: this.dataService.selectedPeriod
+    }).subscribe({
+      next: () => {
+        this.formSaving = false;
+        this.showForm = false;
+        this.formDate = '';
+        this.formName = '';
+        this.formAmount = '';
+        this.formHash = '';
+        this.loadTransactions();
+      },
+      error: (err) => {
+        this.formSaving = false;
+        this.formError = err?.error?.error || 'Failed to save transaction.';
+      }
+    });
+  }
+
+  selectPeriod(period: string): void {
+    if (period === this.dataService.selectedPeriod) return;
+    this.dataService.selectedPeriod = period;
     this.loadTransactions();
   }
 
   loadTransactions(): void {
     this.loading = true;
     this.error = '';
-    this.dataService.getTransactions().subscribe({
+    this.currentPage = 1;
+    this.dataService.getTransactions(this.dataService.selectedPeriod || undefined).subscribe({
       next: (data) => {
         this.allTransactions = data;
         this.applyFilters();
@@ -67,15 +127,24 @@ export class TransactionsComponent implements OnInit {
       this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc';
     } else {
       this.sortKey = key;
-      this.sortDir = key === 'amount' ? 'asc' : 'asc';
+      this.sortDir = 'asc';
     }
     this.applyFilters();
+  }
+
+  private sortDates(dates: string[]): string[] {
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return [...dates].sort((a, b) => {
+      const [am, ad] = a.split(' ');
+      const [bm, bd] = b.split(' ');
+      const d = months.indexOf(am) - months.indexOf(bm);
+      return d !== 0 ? d : parseInt(ad) - parseInt(bd);
+    });
   }
 
   private applyFilters(): void {
     let result = [...this.allTransactions];
 
-    // Filter by search
     const q = this.searchQuery.toLowerCase().trim();
     if (q) {
       result = result.filter(t =>
@@ -86,13 +155,11 @@ export class TransactionsComponent implements OnInit {
       );
     }
 
-    // Sort
+    const dateOrder = this.sortDates([...new Set(this.allTransactions.map(t => t.date))]);
     result.sort((a, b) => {
       let cmp = 0;
       if (this.sortKey === 'date') {
-        const ai = this.dateOrder.indexOf(a.date);
-        const bi = this.dateOrder.indexOf(b.date);
-        cmp = (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+        cmp = (dateOrder.indexOf(a.date) ?? 999) - (dateOrder.indexOf(b.date) ?? 999);
       } else if (this.sortKey === 'name') {
         cmp = a.name.localeCompare(b.name);
       } else if (this.sortKey === 'amount') {
@@ -118,9 +185,7 @@ export class TransactionsComponent implements OnInit {
   }
 
   goToPage(p: number): void {
-    if (p >= 1 && p <= this.totalPages) {
-      this.currentPage = p;
-    }
+    if (p >= 1 && p <= this.totalPages) this.currentPage = p;
   }
 
   isHashUrl(hash: string | null): boolean {
@@ -128,10 +193,7 @@ export class TransactionsComponent implements OnInit {
   }
 
   formatAmount(n: number): string {
-    return (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
+    return (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   getChainLabel(hash: string | null): string {
@@ -146,11 +208,8 @@ export class TransactionsComponent implements OnInit {
     return this.sortDir === 'asc' ? '↑' : '↓';
   }
 
-  // Stats for current filter
   get filteredTotal(): number {
-    return parseFloat(
-      this.filteredTransactions.reduce((s, t) => s + t.amount, 0).toFixed(2)
-    );
+    return parseFloat(this.filteredTransactions.reduce((s, t) => s + t.amount, 0).toFixed(2));
   }
 
   get uniqueMembers(): number {

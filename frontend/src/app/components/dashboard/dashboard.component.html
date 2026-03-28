@@ -1,3 +1,14 @@
+<!-- Period Selector (always visible) -->
+<div class="period-bar" *ngIf="dataService.periods.length > 0">
+  <span class="period-label">Period:</span>
+  <button *ngFor="let p of dataService.periods"
+          class="period-btn"
+          [class.active]="p === dataService.selectedPeriod"
+          (click)="selectPeriod(p)">
+    {{ p }}
+  </button>
+</div>
+
 <!-- Loading State -->
 <div class="loading-state" *ngIf="loading">
   <div class="spinner"></div>
@@ -23,7 +34,7 @@
   <div class="page-header">
     <div>
       <h1 class="page-title">Financial Overview</h1>
-      <p class="page-subtitle">Mar 2025 crypto payment tracker — {{ transactions.length }} transactions across {{ members.length }} members</p>
+      <p class="page-subtitle">{{ dataService.selectedPeriod }} — {{ transactions.length }} transactions across {{ members.length }} members</p>
     </div>
   </div>
 
@@ -134,7 +145,7 @@
         <a routerLink="/transactions" class="view-all">View all &rarr;</a>
       </div>
       <div class="member-list">
-        <div class="member-row" *ngFor="let m of getTopMembers(); let i = index">
+        <div class="member-row" *ngFor="let m of topMembers; let i = index">
           <div class="member-rank">{{ i + 1 }}</div>
           <div class="member-avatar" [style.background]="i % 2 === 0 ? 'rgba(31,111,235,0.2)' : 'rgba(248,81,73,0.2)'">
             {{ getMemberInitials(m.member) }}
@@ -158,7 +169,7 @@
         <h2 class="chart-title">Activity by Date</h2>
       </div>
       <div class="timeline">
-        <div class="timeline-item" *ngFor="let d of getTransactionsByDate()">
+        <div class="timeline-item" *ngFor="let d of transactionsByDate">
           <div class="timeline-dot"></div>
           <div class="timeline-content">
             <div class="timeline-date">{{ d.date }}</div>

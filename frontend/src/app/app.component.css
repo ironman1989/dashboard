@@ -96,6 +96,20 @@
   margin-left: auto;
 }
 
+.period-select-nav {
+  background: rgba(31, 111, 235, 0.15);
+  color: var(--accent-blue-light);
+  border: 1px solid rgba(56, 139, 253, 0.3);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+}
+.period-select-nav:focus { border-color: var(--accent-blue-light); }
+.period-select-nav option { background: #161b22; color: #e6edf3; }
+
 .period-badge {
   background: rgba(31, 111, 235, 0.2);
   color: var(--accent-blue-light);

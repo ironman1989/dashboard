@@ -1,3 +1,14 @@
+<!-- Period Selector (always visible) -->
+<div class="period-bar" *ngIf="dataService.periods.length > 0">
+  <span class="period-label">Period:</span>
+  <button *ngFor="let p of dataService.periods"
+          class="period-btn"
+          [class.active]="p === dataService.selectedPeriod"
+          (click)="selectPeriod(p)">
+    {{ p }}
+  </button>
+</div>
+
 <!-- Loading State -->
 <div class="loading-state" *ngIf="loading">
   <div class="spinner"></div>
@@ -23,7 +34,39 @@
   <div class="page-header">
     <div>
       <h1 class="page-title">Transactions</h1>
-      <p class="page-subtitle">All Mar 2025 crypto payment records</p>
+      <p class="page-subtitle">All {{ dataService.selectedPeriod }} crypto payment records</p>
+    </div>
+    <button class="add-btn" (click)="toggleForm()">
+      {{ showForm ? '✕ Cancel' : '+ Add Transaction' }}
+    </button>
+  </div>
+
+  <!-- Add Transaction Form -->
+  <div class="add-form-card" *ngIf="showForm">
+    <div class="form-grid">
+      <div class="form-field">
+        <label>Date</label>
+        <input type="text" [(ngModel)]="formDate" placeholder="e.g. Apr 5" class="form-input" />
+      </div>
+      <div class="form-field">
+        <label>Member Name</label>
+        <input type="text" [(ngModel)]="formName" placeholder="e.g. JGC" class="form-input" />
+      </div>
+      <div class="form-field">
+        <label>Amount</label>
+        <input type="number" [(ngModel)]="formAmount" placeholder="e.g. 500" class="form-input" />
+      </div>
+      <div class="form-field wide">
+        <label>Transaction Hash (optional)</label>
+        <input type="text" [(ngModel)]="formHash" placeholder="https://etherscan.io/tx/0x... or leave blank" class="form-input" />
+      </div>
+    </div>
+    <div class="form-footer">
+      <span class="form-period-note">Period: <strong>{{ dataService.selectedPeriod }}</strong></span>
+      <span class="form-error" *ngIf="formError">{{ formError }}</span>
+      <button class="save-btn" (click)="submitTransaction()" [disabled]="formSaving">
+        {{ formSaving ? 'Saving...' : 'Save Transaction' }}
+      </button>
     </div>
   </div>
 

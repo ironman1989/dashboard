@@ -11,7 +11,7 @@ const Transaction = require('./models/Transaction');
 const Member = require('./models/Member');
 
 const app = express();
-const PORT = 3000;
+const PORT = 4200;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/mar2025dashboard';
 
 // Middleware
@@ -32,12 +32,12 @@ mongoose.connect(MONGO_URI)
 // Public routes
 app.use('/api/auth', authRouter);
 
-// Protected routes
-app.use('/api/transactions', authMiddleware, transactionsRouter);
-app.use('/api/members', authMiddleware, membersRouter);
+// Routes (no auth required for read access)
+app.use('/api/transactions', transactionsRouter);
+app.use('/api/members', membersRouter);
 
-// Summary endpoint (protected)
-app.get('/api/summary', authMiddleware, async (req, res) => {
+// Summary endpoint
+app.get('/api/summary', async (req, res) => {
   try {
     const { period } = req.query;
     const txFilter = period ? { period } : {};
@@ -119,8 +119,12 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// One-time data fix: seed pending from previous period result (no auth, localhost only)
+// One-time data fix: seed pending from previous period result (localhost only)
 app.get('/api/fix-pending', async (req, res) => {
+  const ip = req.socket.remoteAddress;
+  if (ip !== '127.0.0.1' && ip !== '::1' && ip !== '::ffff:127.0.0.1') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
   try {
     const { from, to } = req.query;
     if (!from || !to) return res.status(400).json({ error: 'from and to query params required' });

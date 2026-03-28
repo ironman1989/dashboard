@@ -1,3 +1,27 @@
+/* Period Bar */
+.period-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.period-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.period-btn {
+  padding: 5px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.period-btn:hover { border-color: var(--accent-blue-light); color: var(--text-primary); }
+.period-btn.active { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; }
+
 /* Loading / Error (reuse dashboard patterns) */
 .loading-state {
   display: flex;
@@ -44,10 +68,73 @@
 }
 .retry-btn:hover { background: var(--accent-blue-light); }
 
+/* Add Transaction */
+.add-btn {
+  padding: 8px 16px;
+  background: var(--accent-blue);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.add-btn:hover { background: var(--accent-blue-light); }
+
+.add-form-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.form-field { display: flex; flex-direction: column; gap: 6px; }
+.form-field.wide { grid-column: span 3; }
+.form-field label { font-size: 12px; color: var(--text-secondary); font-weight: 500; }
+.form-input {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 14px;
+  padding: 8px 10px;
+  outline: none;
+}
+.form-input:focus { border-color: var(--accent-blue-light); }
+.form-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.form-period-note { font-size: 13px; color: var(--text-secondary); margin-right: auto; }
+.form-error { font-size: 13px; color: var(--accent-red); }
+.save-btn {
+  padding: 8px 20px;
+  background: var(--accent-green);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.save-btn:not(:disabled):hover { opacity: 0.9; }
+
 /* Page */
 .transactions-page {}
 
 .page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   margin-bottom: 24px;
 }
 .page-title {
