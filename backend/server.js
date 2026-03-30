@@ -11,7 +11,7 @@ const Transaction = require('./models/Transaction');
 const Member = require('./models/Member');
 
 const app = express();
-const PORT = 4200;
+const PORT = process.env.PORT || 80;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/mar2025dashboard';
 
 // Middleware
