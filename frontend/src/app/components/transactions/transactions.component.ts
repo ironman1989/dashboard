@@ -39,7 +39,7 @@ export class TransactionsComponent implements OnInit {
       this.dataService.getPeriods().subscribe({
         next: (periods) => {
           this.dataService.periods = periods;
-          this.dataService.selectedPeriod = periods[periods.length - 1] || '';
+          this.dataService.selectedPeriod = periods[0] || '';
           this.loadTransactions();
         },
         error: () => { this.error = 'Failed to load periods.'; this.loading = false; }

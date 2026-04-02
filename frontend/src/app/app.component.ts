@@ -17,7 +17,7 @@ export class AppComponent implements OnInit {
       next: (periods) => {
         this.dataService.periods = periods;
         if (!this.dataService.selectedPeriod) {
-          this.dataService.selectedPeriod = periods[periods.length - 1] || '';
+          this.dataService.selectedPeriod = periods[0] || '';
         }
       }
     });
